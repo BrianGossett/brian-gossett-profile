@@ -1,6 +1,6 @@
 import { Box,  Heading, Image,  Text, VStack } from "@chakra-ui/react";
 import PageContainer from "../../Components/Container";
-import ProfilePic from "../../assets/me.jpg"; 
+import ProfilePic from "../../assets/Me.jpg"; 
 
 const HomePage = () => {
     return (
