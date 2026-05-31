@@ -5,8 +5,9 @@ import { colors } from "../../Theme"
 
 // ── Shared sub-components ──────────────────────────────────────────────────
 
-const SidebarCard: React.FC<React.PropsWithChildren<{}>> = ({ children }) => (
+const SidebarCard: React.FC<React.PropsWithChildren<{ id?: string }>> = ({ id, children }) => (
   <Box
+    id={id}
     bg={colors.surface}
     borderRadius="xl"
     border={`1px solid ${colors.border}`}
@@ -58,7 +59,7 @@ const IdentityCard = () => (
         alt="Brian Gossett"
         borderRadius="full"
         boxSize="90px"
-        style={{ objectFit: "cover" }}
+        fit="cover"
         border={`2px solid ${colors.accent}`}
       />
       <Box textAlign="center">
@@ -117,18 +118,6 @@ const SkillsCard = () => (
   </SidebarCard>
 )
 
-const ContactCard = () => (
-  <SidebarCard>
-    <SectionTitle id="contact">Contact</SectionTitle>
-    <VStack align="start" gap={3}>
-      <ContactRow icon="⌥" href="https://www.linkedin.com/in/brian-gossett-686aa4175/" label="LinkedIn" />
-      <ContactRow icon="◈" href="https://github.com/BrianGossett" label="GitHub / BrianGossett" />
-      <ContactRow icon="✉" href="mailto:Brian.Gossett.usa@gmail.com" label="Brian.Gossett.usa@gmail.com" />
-      <ContactRow icon="◎" label="Lubbock, TX" />
-    </VStack>
-  </SidebarCard>
-)
-
 const ContactRow = ({ icon, href, label }: { icon: string; href?: string; label: string }) => (
   <Flex align="center" gap={2}>
     <Text color={colors.accent} fontSize="sm" minW="16px">{icon}</Text>
@@ -148,6 +137,18 @@ const ContactRow = ({ icon, href, label }: { icon: string; href?: string; label:
       <Text fontSize="sm" color={colors.textMuted}>{label}</Text>
     )}
   </Flex>
+)
+
+const ContactCard = () => (
+  <SidebarCard id="contact">
+    <SectionTitle>Contact</SectionTitle>
+    <VStack align="start" gap={3}>
+      <ContactRow icon="⌥" href="https://www.linkedin.com/in/brian-gossett-686aa4175/" label="LinkedIn" />
+      <ContactRow icon="◈" href="https://github.com/BrianGossett" label="GitHub / BrianGossett" />
+      <ContactRow icon="✉" href="mailto:Brian.Gossett.usa@gmail.com" label="Brian.Gossett.usa@gmail.com" />
+      <ContactRow icon="◎" label="Lubbock, TX" />
+    </VStack>
+  </SidebarCard>
 )
 
 // ── Main content sections ──────────────────────────────────────────────────
