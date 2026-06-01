@@ -58,7 +58,7 @@ const MultipleChoiceMode = () => {
     }
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
-  })
+  }, [index, selected, questions])
 
   const q = questions[index]
 
