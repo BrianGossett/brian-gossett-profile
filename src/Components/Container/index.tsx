@@ -1,4 +1,5 @@
 import { Box, Flex, Link, Text, VStack } from "@chakra-ui/react"
+import { NavLink } from "react-router"
 import { colors } from "../../Theme"
 
 const PageContainer: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
@@ -32,6 +33,16 @@ export const Header = () => {
         <Link href="#about"      color={colors.textMuted} fontSize="sm" _hover={{ color: colors.accent }} textDecoration="none">About</Link>
         <Link href="#experience" color={colors.textMuted} fontSize="sm" _hover={{ color: colors.accent }} textDecoration="none">Experience</Link>
         <Link href="#contact"    color={colors.textMuted} fontSize="sm" _hover={{ color: colors.accent }} textDecoration="none">Contact</Link>
+        <NavLink
+          to="/study"
+          style={({ isActive }) => ({
+            textDecoration: "none",
+            fontSize: "14px",
+            color: isActive ? colors.accent : colors.textMuted,
+          })}
+        >
+          Study
+        </NavLink>
       </Flex>
     </Flex>
   )
