@@ -52,7 +52,7 @@ const FlashcardMode = () => {
           <Text fontSize="sm" color={colors.textMuted} mb={8}>
             {gotIt} got it · {missed} missed · {allTerms.length} total
           </Text>
-          <ActionBtn onClick={() => { setIndex(0); setPosition("flashcards", 0); setFlipped(false) }}>
+          <ActionBtn onClick={() => { setIndex(0); setPosition("flashcards", 0); setFlipped(false); setGotIt(0); setMissed(0) }}>
             Restart Deck
           </ActionBtn>
           <Box mt={4}>
