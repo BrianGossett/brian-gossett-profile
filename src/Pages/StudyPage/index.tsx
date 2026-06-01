@@ -2,7 +2,7 @@ import { Box, Flex, Text, Wrap, WrapItem } from "@chakra-ui/react"
 import { useNavigate } from "react-router"
 import PageContainer from "../../Components/Container"
 import { colors } from "../../Theme"
-import { ALL_CATEGORIES, getCategoryCounts, getTermsByCategory, type Category } from "../../data/terms"
+import { getCategories, getCategoryCounts, getTermsByCategory } from "../../data/terms"
 import { useStudySession } from "../../hooks/useStudySession"
 
 const MODES = [
@@ -16,7 +16,8 @@ const StudyHub = () => {
   const navigate = useNavigate()
   const { session, weakTerms, resetSession, setLastMode, setLastCategory } = useStudySession()
   const counts = getCategoryCounts()
-  const selectedCat = (session.lastCategory ?? "all") as Category | "all"
+  const categories = getCategories()
+  const selectedCat = session.lastCategory ?? "all"
   const selectedMode = session.lastMode ?? "flashcards"
   const filteredTerms = getTermsByCategory(selectedCat)
   const remaining = filteredTerms.filter(t => !session.mastered.includes(t.id)).length
@@ -34,7 +35,7 @@ const StudyHub = () => {
           Music Theory Study
         </Text>
         <Text fontSize="sm" color={colors.textMuted} mb={8}>
-          {counts.all} terms · {ALL_CATEGORIES.length} categories
+          {counts.all} terms · {categories.length} categories
         </Text>
 
         {/* Session banner */}
@@ -98,7 +99,7 @@ const StudyHub = () => {
               onClick={() => setLastCategory("all")}
             />
           </WrapItem>
-          {ALL_CATEGORIES.map(cat => (
+          {categories.map(cat => (
             <WrapItem key={cat}>
               <CategoryPill
                 label={`${cat} (${counts[cat]})`}
