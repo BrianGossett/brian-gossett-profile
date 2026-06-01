@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multiple Choice Mockup</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Figtree', 'Segoe UI', sans-serif; background: #0f0f14; color: #fffffe; min-height: 100vh; }
+
+  nav { background: #0a0a0f; border-bottom: 1px solid #1e1e2e; padding: 14px 32px; display: flex; align-items: center; gap: 28px; }
+  nav .logo { font-weight: 800; font-size: 16px; color: #00b4d8; }
+  nav a { font-size: 13px; color: #94a1b2; text-decoration: none; }
+
+  .page { max-width: 680px; margin: 0 auto; padding: 32px 24px; }
+
+  .topbar { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+  .back-btn { color: #94a1b2; font-size: 13px; cursor: pointer; }
+  .back-btn:hover { color: #00b4d8; }
+  .mode-title { font-size: 13px; font-weight: 700; color: #fffffe; }
+  .category-pill { background: #00b4d820; border: 1px solid #00b4d840; border-radius: 20px; padding: 3px 10px; font-size: 11px; color: #00b4d8; margin-left: auto; }
+
+  .progress-row { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+  .progress-label { font-size: 12px; color: #94a1b2; white-space: nowrap; }
+  .progress-bar { flex: 1; height: 6px; background: #1e1e2e; border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 38%; background: linear-gradient(90deg, #00b4d8, #90e0ef); border-radius: 3px; }
+  .score { font-size: 12px; color: #94a1b2; white-space: nowrap; }
+
+  /* Question card */
+  .question-card { background: #16213e; border: 1px solid #1e1e2e; border-radius: 16px; padding: 32px 36px; margin-bottom: 20px; }
+  .q-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #00b4d8; margin-bottom: 14px; font-weight: 700; }
+  .q-text { font-size: 17px; font-weight: 700; color: #fffffe; line-height: 1.5; }
+
+  /* Options */
+  .options { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+  .option { background: #16213e; border: 1px solid #1e1e2e; border-radius: 10px; padding: 14px 18px; cursor: pointer; display: flex; align-items: flex-start; gap: 12px; transition: all 0.12s; }
+  .option:hover { border-color: #00b4d860; background: #0a192f; }
+  .option.correct { border-color: #2cb67d; background: #0d2a1e; }
+  .option.wrong { border-color: #ff6b6b; background: #2a0d0d; }
+  .option.reveal { border-color: #2cb67d; background: #0d2a1e; }
+  .opt-letter { width: 26px; height: 26px; border-radius: 50%; border: 1px solid #1e1e2e; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #94a1b2; flex-shrink: 0; margin-top: 1px; }
+  .option.correct .opt-letter { border-color: #2cb67d; color: #2cb67d; background: #2cb67d20; }
+  .option.wrong .opt-letter { border-color: #ff6b6b; color: #ff6b6b; background: #ff6b6b20; }
+  .option.reveal .opt-letter { border-color: #2cb67d; color: #2cb67d; background: #2cb67d20; }
+  .opt-text { font-size: 13px; color: #94a1b2; line-height: 1.5; }
+  .option.correct .opt-text, .option.reveal .opt-text { color: #fffffe; }
+  .option.wrong .opt-text { color: #fffffe; }
+
+  /* Feedback */
+  .feedback { background: #0d2a1e; border: 1px solid #2cb67d40; border-radius: 10px; padding: 14px 18px; margin-bottom: 20px; display: flex; gap: 12px; align-items: flex-start; }
+  .feedback.wrong-fb { background: #2a0d0d; border-color: #ff6b6b40; }
+  .fb-icon { font-size: 18px; flex-shrink: 0; }
+  .fb-text { font-size: 13px; color: #94a1b2; line-height: 1.6; }
+  .fb-text strong { color: #fffffe; }
+
+  .next-btn { width: 100%; background: #00b4d8; color: #0f0f14; border: none; border-radius: 10px; padding: 14px; font-size: 14px; font-weight: 800; cursor: pointer; }
+  .next-btn:hover { background: #90e0ef; }
+
+  .keyboard-hint { text-align: center; font-size: 11px; color: #4a5568; margin-top: 12px; }
+  kbd { background: #1e1e2e; border: 1px solid #2a2a3e; border-radius: 4px; padding: 2px 6px; font-size: 10px; color: #94a1b2; font-family: monospace; }
+
+  /* Demo controls */
+  .demo-toggle { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
+  .demo-btn { background: #16213e; border: 1px solid #1e1e2e; border-radius: 8px; padding: 6px 14px; font-size: 12px; color: #94a1b2; cursor: pointer; }
+  .demo-btn.active { border-color: #00b4d8; color: #00b4d8; }
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">BG</span>
+  <a href="#">Home</a>
+  <a href="#">Study</a>
+</nav>
+
+<div class="page">
+
+  <div class="topbar">
+    <span class="back-btn">← Back to Hub</span>
+    <span class="mode-title">🎯 Multiple Choice</span>
+    <span class="category-pill">All Terms</span>
+  </div>
+
+  <div class="progress-row">
+    <span class="progress-label">Q 15 of 40</span>
+    <div class="progress-bar"><div class="progress-fill"></div></div>
+    <span class="score">12 ✓ &nbsp; 2 ✕</span>
+  </div>
+
+  <div class="demo-toggle">
+    <button class="demo-btn active" onclick="showUnanswered()">Unanswered</button>
+    <button class="demo-btn" onclick="showCorrect()">Got it right</button>
+    <button class="demo-btn" onclick="showWrong()">Got it wrong</button>
+  </div>
+
+  <div class="question-card">
+    <div class="q-label">What is this term?</div>
+    <div class="q-text">A dominant (V or V7) of a key outside the main key. Creates a strong pull to the chord it tonicizes. Cannot be applied to the viio triad.</div>
+  </div>
+
+  <div class="options" id="options">
+    <div class="option" id="opt-a" onclick="selectOption('a')">
+      <div class="opt-letter" id="let-a">A</div>
+      <div class="opt-text">Tonicization</div>
+    </div>
+    <div class="option" id="opt-b" onclick="selectOption('b')">
+      <div class="opt-letter" id="let-b">B</div>
+      <div class="opt-text">Secondary Dominant</div>
+    </div>
+    <div class="option" id="opt-c" onclick="selectOption('c')">
+      <div class="opt-letter" id="let-c">C</div>
+      <div class="opt-text">Pivot Chord</div>
+    </div>
+    <div class="option" id="opt-d" onclick="selectOption('d')">
+      <div class="opt-letter" id="let-d">D</div>
+      <div class="opt-text">Modulation</div>
+    </div>
+  </div>
+
+  <div id="feedback" style="display:none" class="feedback">
+    <span class="fb-icon">✅</span>
+    <div class="fb-text" id="fb-text"></div>
+  </div>
+
+  <button class="next-btn" id="next-btn" style="display:none" onclick="reset()">Next Question →</button>
+  <div class="keyboard-hint"><kbd>A</kbd><kbd>B</kbd><kbd>C</kbd><kbd>D</kbd> to select &nbsp;·&nbsp; <kbd>Enter</kbd> next</div>
+
+</div>
+
+<script>
+  const correct = 'b';
+  let answered = false;
+
+  function selectOption(choice) {
+    if (answered) return;
+    answered = true;
+    ['a','b','c','d'].forEach(o => {
+      document.getElementById('opt-'+o).onclick = null;
+    });
+    if (choice === correct) {
+      document.getElementById('opt-'+choice).classList.add('correct');
+      document.getElementById('let-'+choice).textContent = '✓';
+      document.getElementById('feedback').className = 'feedback';
+      document.getElementById('feedback').style.display = 'flex';
+      document.getElementById('fb-text').innerHTML = '<strong>Correct!</strong> A Secondary Dominant (V/x or V7/x) tonicizes any diatonic chord except viio. Common examples: V/V, V/vi, V/IV.';
+      document.querySelector('.fb-icon').textContent = '✅';
+    } else {
+      document.getElementById('opt-'+choice).classList.add('wrong');
+      document.getElementById('let-'+choice).textContent = '✕';
+      document.getElementById('opt-'+correct).classList.add('reveal');
+      document.getElementById('let-'+correct).textContent = '✓';
+      document.getElementById('feedback').className = 'feedback wrong-fb';
+      document.getElementById('feedback').style.display = 'flex';
+      document.getElementById('fb-text').innerHTML = '<strong>Not quite.</strong> The answer is <strong>Secondary Dominant</strong>. A V/x chord creates a strong pull to the chord it tonicizes — unlike tonicization, which is the broader act of treating a note as temporary tonic.';
+      document.querySelector('.fb-icon').textContent = '❌';
+    }
+    document.getElementById('next-btn').style.display = 'block';
+    document.querySelectorAll('.demo-btn')[0].classList.remove('active');
+    if (choice === correct) document.querySelectorAll('.demo-btn')[1].classList.add('active');
+    else document.querySelectorAll('.demo-btn')[2].classList.add('active');
+  }
+
+  function showUnanswered() {
+    answered = false;
+    ['a','b','c','d'].forEach(o => {
+      const el = document.getElementById('opt-'+o);
+      el.className = 'option';
+      document.getElementById('let-'+o).textContent = o.toUpperCase();
+      el.onclick = () => selectOption(o);
+    });
+    document.getElementById('feedback').style.display = 'none';
+    document.getElementById('next-btn').style.display = 'none';
+    document.querySelectorAll('.demo-btn').forEach((b,i) => b.classList.toggle('active', i===0));
+  }
+  function showCorrect() { showUnanswered(); selectOption('b'); }
+  function showWrong() { showUnanswered(); selectOption('a'); }
+  function reset() { showUnanswered(); }
+</script>
+</body>
+</html>

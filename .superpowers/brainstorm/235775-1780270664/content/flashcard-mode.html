@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flashcard Mode Mockup</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Figtree', 'Segoe UI', sans-serif; background: #0f0f14; color: #fffffe; min-height: 100vh; }
+
+  nav { background: #0a0a0f; border-bottom: 1px solid #1e1e2e; padding: 14px 32px; display: flex; align-items: center; gap: 28px; }
+  nav .logo { font-weight: 800; font-size: 16px; color: #00b4d8; }
+  nav a { font-size: 13px; color: #94a1b2; text-decoration: none; }
+
+  .page { max-width: 680px; margin: 0 auto; padding: 32px 24px; }
+
+  /* Top bar */
+  .topbar { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+  .back-btn { color: #94a1b2; font-size: 13px; text-decoration: none; cursor: pointer; }
+  .back-btn:hover { color: #00b4d8; }
+  .mode-title { font-size: 13px; font-weight: 700; color: #fffffe; }
+  .category-pill { background: #00b4d820; border: 1px solid #00b4d840; border-radius: 20px; padding: 3px 10px; font-size: 11px; color: #00b4d8; margin-left: auto; }
+
+  /* Progress */
+  .progress-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .progress-label { font-size: 12px; color: #94a1b2; white-space: nowrap; }
+  .progress-bar { flex: 1; height: 6px; background: #1e1e2e; border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 22%; background: linear-gradient(90deg, #00b4d8, #90e0ef); border-radius: 3px; }
+  .streak { font-size: 12px; color: #ffd93d; white-space: nowrap; }
+
+  /* Mini stats */
+  .mini-stats { display: flex; gap: 16px; margin-bottom: 32px; }
+  .mini-stat { display: flex; align-items: center; gap: 5px; font-size: 12px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot.green { background: #2cb67d; }
+  .dot.red { background: #ff6b6b; }
+  .dot.gray { background: #4a5568; }
+
+  /* Card */
+  .card-area { position: relative; margin-bottom: 28px; perspective: 1000px; }
+  .card { background: #16213e; border: 1px solid #1e1e2e; border-radius: 20px; padding: 48px 40px; min-height: 260px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; cursor: pointer; position: relative; transition: transform 0.1s; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+  .card:hover { border-color: #00b4d840; }
+  .card-hint { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #4a5568; margin-bottom: 20px; }
+  .card-term { font-size: 28px; font-weight: 800; color: #fffffe; margin-bottom: 12px; line-height: 1.2; }
+  .card-category { font-size: 11px; color: #00b4d8; text-transform: uppercase; letter-spacing: 1px; }
+  .flip-hint { position: absolute; bottom: 16px; right: 20px; font-size: 11px; color: #4a5568; }
+
+  /* Flipped state (shown via toggle) */
+  .card.flipped { background: #0a192f; border-color: #00b4d840; }
+  .card-def { font-size: 14px; color: #94a1b2; line-height: 1.7; max-width: 480px; }
+  .card-def strong { color: #fffffe; }
+
+  /* Swipe buttons */
+  .swipe-row { display: flex; align-items: center; justify-content: center; gap: 24px; margin-bottom: 28px; }
+  .swipe-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; background: none; border: none; cursor: pointer; }
+  .swipe-circle { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; border: 2px solid; transition: all 0.15s; }
+  .swipe-circle.no { border-color: #ff6b6b; color: #ff6b6b; }
+  .swipe-circle.no:hover { background: #ff6b6b20; transform: scale(1.1); }
+  .swipe-circle.yes { border-color: #2cb67d; color: #2cb67d; }
+  .swipe-circle.yes:hover { background: #2cb67d20; transform: scale(1.1); }
+  .swipe-label { font-size: 11px; color: #4a5568; text-transform: uppercase; letter-spacing: 1px; }
+  .card-counter { font-size: 13px; color: #94a1b2; }
+
+  /* Keyboard hint */
+  .keyboard-hint { text-align: center; font-size: 11px; color: #4a5568; }
+  kbd { background: #1e1e2e; border: 1px solid #2a2a3e; border-radius: 4px; padding: 2px 6px; font-size: 10px; color: #94a1b2; font-family: monospace; }
+
+  /* Two-state demo toggle */
+  .demo-toggle { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
+  .demo-btn { background: #16213e; border: 1px solid #1e1e2e; border-radius: 8px; padding: 6px 14px; font-size: 12px; color: #94a1b2; cursor: pointer; }
+  .demo-btn.active { border-color: #00b4d8; color: #00b4d8; }
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">BG</span>
+  <a href="#">Home</a>
+  <a href="#">Study</a>
+</nav>
+
+<div class="page">
+
+  <div class="topbar">
+    <span class="back-btn">← Back to Hub</span>
+    <span class="mode-title">🃏 Flashcards</span>
+    <span class="category-pill">All Terms</span>
+  </div>
+
+  <div class="progress-row">
+    <span class="progress-label">Card 23 of 116</span>
+    <div class="progress-bar"><div class="progress-fill"></div></div>
+    <span class="streak">🔥 7 streak</span>
+  </div>
+
+  <div class="mini-stats" style="margin-bottom:24px">
+    <span class="mini-stat"><span class="dot green"></span><span style="color:#2cb67d">22 got it</span></span>
+    <span class="mini-stat"><span class="dot red"></span><span style="color:#ff6b6b">0 missed</span></span>
+    <span class="mini-stat"><span class="dot gray"></span><span style="color:#4a5568">94 remaining</span></span>
+  </div>
+
+  <!-- Demo toggle -->
+  <div class="demo-toggle">
+    <button class="demo-btn active" onclick="showFront()">Show Front (Term)</button>
+    <button class="demo-btn" onclick="showBack()">Show Back (Definition)</button>
+  </div>
+
+  <!-- FRONT of card -->
+  <div class="card-area">
+    <div class="card" id="card" onclick="toggleCard()">
+      <div class="card-hint" id="card-hint">Click to reveal definition</div>
+      <div id="card-front">
+        <div class="card-term">Dorian</div>
+        <div class="card-category">Modes · #2</div>
+      </div>
+      <div id="card-back" style="display:none">
+        <div class="card-def">
+          Like <strong>natural minor with a raised ♮6</strong>. The authentic mode on D — diatonic octave from d to d′, divided at A. In parallel terms: same as natural minor but with <strong>↑^6</strong> as the color note.
+        </div>
+      </div>
+      <span class="flip-hint">click to flip</span>
+    </div>
+  </div>
+
+  <div class="swipe-row">
+    <button class="swipe-btn" title="Still learning">
+      <div class="swipe-circle no">✕</div>
+      <span class="swipe-label">Still learning</span>
+    </button>
+    <span class="card-counter" id="counter-txt">Flip first, then swipe</span>
+    <button class="swipe-btn" title="Got it!">
+      <div class="swipe-circle yes">✓</div>
+      <span class="swipe-label">Got it!</span>
+    </button>
+  </div>
+
+  <div class="keyboard-hint">
+    <kbd>Space</kbd> flip &nbsp;·&nbsp; <kbd>←</kbd> still learning &nbsp;·&nbsp; <kbd>→</kbd> got it
+  </div>
+
+</div>
+
+<script>
+  let flipped = false;
+  function toggleCard() {
+    flipped = !flipped;
+    document.getElementById('card-front').style.display = flipped ? 'none' : 'block';
+    document.getElementById('card-back').style.display = flipped ? 'block' : 'none';
+    document.getElementById('card-hint').textContent = flipped ? 'Definition' : 'Click to reveal definition';
+    document.getElementById('card').classList.toggle('flipped', flipped);
+    document.getElementById('counter-txt').textContent = flipped ? 'Know it?' : 'Flip first, then swipe';
+    document.querySelectorAll('.demo-btn')[0].classList.toggle('active', !flipped);
+    document.querySelectorAll('.demo-btn')[1].classList.toggle('active', flipped);
+  }
+  function showFront() { if (flipped) toggleCard(); }
+  function showBack() { if (!flipped) toggleCard(); }
+</script>
+</body>
+</html>

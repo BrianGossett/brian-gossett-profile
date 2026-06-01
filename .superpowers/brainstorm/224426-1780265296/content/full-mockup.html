@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brian Gossett — Profile Mockup</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Figtree', 'Segoe UI', sans-serif; background: #0f0f14; color: #fffffe; display: flex; flex-direction: column; min-height: 100vh; }
+
+  /* NAV */
+  nav { background: #0a0a0f; border-bottom: 1px solid #1e1e2e; padding: 14px 32px; display: flex; align-items: center; gap: 28px; }
+  nav .logo { font-weight: 800; font-size: 16px; color: #00b4d8; letter-spacing: 0.5px; }
+  nav a { font-size: 13px; color: #94a1b2; text-decoration: none; transition: color 0.2s; }
+  nav a:hover { color: #00b4d8; }
+
+  /* LAYOUT */
+  .layout { display: flex; flex: 1; max-width: 1100px; margin: 0 auto; width: 100%; padding: 40px 24px; gap: 32px; }
+
+  /* SIDEBAR */
+  .sidebar { width: 260px; flex-shrink: 0; display: flex; flex-direction: column; gap: 24px; }
+  .sidebar-card { background: #16213e; border-radius: 12px; padding: 24px; border: 1px solid #1e1e3f; }
+
+  .profile-photo { width: 90px; height: 90px; border-radius: 50%; background: linear-gradient(135deg, #00b4d8, #90e0ef); margin: 0 auto 14px; display: flex; align-items: center; justify-content: center; font-size: 32px; color: #0f0f14; overflow: hidden; }
+  .profile-photo img { width: 100%; height: 100%; object-fit: cover; }
+  .sidebar-name { text-align: center; font-size: 18px; font-weight: 800; color: #fffffe; margin-bottom: 4px; }
+  .sidebar-title { text-align: center; font-size: 12px; color: #00b4d8; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 16px; }
+  .sidebar-badge { display: inline-flex; align-items: center; gap: 5px; background: #0a192f; border: 1px solid #00b4d830; border-radius: 20px; padding: 4px 10px; font-size: 10px; color: #90e0ef; margin: 0 auto 4px; }
+  .badges { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+
+  .sidebar-section-title { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #00b4d8; margin-bottom: 12px; font-weight: 700; }
+  .skills-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+  .skill-tag { background: #0a192f; border: 1px solid #00b4d830; color: #90e0ef; border-radius: 6px; padding: 4px 8px; font-size: 10px; }
+
+  .contact-links { display: flex; flex-direction: column; gap: 8px; }
+  .contact-link { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #94a1b2; text-decoration: none; }
+  .contact-link span { color: #00b4d8; font-size: 14px; }
+
+  /* MAIN */
+  .main { flex: 1; display: flex; flex-direction: column; gap: 28px; }
+  .section { background: #16213e; border-radius: 12px; padding: 28px; border: 1px solid #1e1e3f; }
+  .section-title { font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #00b4d8; font-weight: 700; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid #00b4d820; }
+  .about-text { font-size: 14px; line-height: 1.8; color: #94a1b2; }
+  .about-text strong { color: #fffffe; }
+
+  /* EXPERIENCE */
+  .exp-item { display: flex; gap: 16px; padding-bottom: 20px; margin-bottom: 20px; border-bottom: 1px solid #1e1e3f; }
+  .exp-item:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+  .exp-dot { width: 10px; height: 10px; border-radius: 50%; background: #00b4d8; margin-top: 5px; flex-shrink: 0; box-shadow: 0 0 8px #00b4d870; }
+  .exp-content { flex: 1; }
+  .exp-role { font-size: 14px; font-weight: 700; color: #fffffe; margin-bottom: 2px; }
+  .exp-company { font-size: 12px; color: #00b4d8; margin-bottom: 2px; }
+  .exp-date { font-size: 11px; color: #4a5568; margin-bottom: 8px; }
+  .exp-bullets { list-style: none; padding: 0; }
+  .exp-bullets li { font-size: 12px; color: #94a1b2; padding-left: 12px; position: relative; margin-bottom: 4px; line-height: 1.6; }
+  .exp-bullets li::before { content: '›'; position: absolute; left: 0; color: #00b4d8; }
+
+  /* CERTS */
+  .cert-grid { display: flex; gap: 12px; flex-wrap: wrap; }
+  .cert-card { background: #0a192f; border: 1px solid #00b4d830; border-radius: 8px; padding: 12px 16px; flex: 1; min-width: 180px; }
+  .cert-name { font-size: 12px; font-weight: 700; color: #fffffe; margin-bottom: 4px; }
+  .cert-date { font-size: 11px; color: #00b4d8; }
+
+  /* FOOTER */
+  footer { text-align: center; padding: 20px; font-size: 12px; color: #4a5568; background: #0a0a0f; border-top: 1px solid #1e1e2e; }
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">BG</span>
+  <a href="#">Home</a>
+  <a href="#">About</a>
+  <a href="#">Experience</a>
+  <a href="#">Contact</a>
+</nav>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-card">
+      <div class="profile-photo">BG</div>
+      <div class="sidebar-name">Brian Gossett</div>
+      <div class="sidebar-title">Senior Frontend Developer</div>
+      <div class="badges">
+        <div class="sidebar-badge">✈ Air Force Veteran</div>
+        <div class="sidebar-badge">🔒 Top Secret Clearance</div>
+        <div class="sidebar-badge">☁ AWS Certified</div>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <div class="sidebar-section-title">Tech Stack</div>
+      <div class="skills-grid">
+        <span class="skill-tag">TypeScript</span>
+        <span class="skill-tag">React</span>
+        <span class="skill-tag">Node.js</span>
+        <span class="skill-tag">GraphQL</span>
+        <span class="skill-tag">AWS</span>
+        <span class="skill-tag">GCP</span>
+        <span class="skill-tag">Docker</span>
+        <span class="skill-tag">NextJS</span>
+        <span class="skill-tag">PostgreSQL</span>
+        <span class="skill-tag">Jest</span>
+        <span class="skill-tag">Git</span>
+        <span class="skill-tag">Apollo</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <div class="sidebar-section-title">Contact</div>
+      <div class="contact-links">
+        <a class="contact-link" href="#"><span>⌥</span> LinkedIn</a>
+        <a class="contact-link" href="#"><span>◈</span> GitHub / BrianGossett</a>
+        <a class="contact-link" href="#"><span>✉</span> Brian.Gossett.usa@gmail.com</a>
+        <a class="contact-link" href="#"><span>◎</span> Lubbock, TX</a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <div class="section">
+      <div class="section-title">About Me</div>
+      <p class="about-text">
+        Seasoned software developer and <strong>Air Force veteran</strong> with a background in
+        front-end and full-stack development using <strong>TypeScript, JavaScript, and React</strong>.
+        I have an active <strong>Top Secret clearance</strong> and experience delivering scalable
+        and secure applications in agile environments across government and private sectors.
+      </p>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Experience</div>
+
+      <div class="exp-item">
+        <div class="exp-dot"></div>
+        <div class="exp-content">
+          <div class="exp-role">Front End Developer</div>
+          <div class="exp-company">Trellis Energy</div>
+          <div class="exp-date">July 2025 – Present</div>
+          <ul class="exp-bullets">
+            <li>Developed and refactored React components within a micro frontend architecture</li>
+            <li>Resolved critical performance bottlenecks, improving page load times across core modules</li>
+            <li>Collaborated cross-functionally with backend, QA, and product teams on a SaaS energy platform</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="exp-item">
+        <div class="exp-dot"></div>
+        <div class="exp-content">
+          <div class="exp-role">Senior React Developer</div>
+          <div class="exp-company">Acuity Inc</div>
+          <div class="exp-date">August 2022 – May 2025</div>
+          <ul class="exp-bullets">
+            <li>Developed micro frontend communication system for modular app integration</li>
+            <li>Led MUI5 migration across multiple applications; implemented GraphQL APIs</li>
+            <li>Built map search UI components serving 10k+ users</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="exp-item">
+        <div class="exp-dot"></div>
+        <div class="exp-content">
+          <div class="exp-role">Lead React Developer / Cloud Engineer</div>
+          <div class="exp-company">U.S. Air Force – BESPIN / AFLCMC</div>
+          <div class="exp-date">March 2014 – April 2021</div>
+          <ul class="exp-bullets">
+            <li>Deployed Digital University web app to GCP; built reusable React component libraries</li>
+            <li>Oversaw cloud migration from on-prem to AWS; managed $2M software contract compliance</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Certifications</div>
+      <div class="cert-grid">
+        <div class="cert-card">
+          <div class="cert-name">AWS Cloud Practitioner</div>
+          <div class="cert-date">May 2024</div>
+        </div>
+        <div class="cert-card">
+          <div class="cert-name">Top Secret Security Clearance</div>
+          <div class="cert-date">Active since April 2021</div>
+        </div>
+        <div class="cert-card">
+          <div class="cert-name">B.S. Computer Science</div>
+          <div class="cert-date">Bellevue University · 2024</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<footer>© 2026 Brian Gossett. All rights reserved.</footer>
+
+</body>
+</html>

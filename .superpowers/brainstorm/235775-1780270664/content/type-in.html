@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Type-In Mode Mockup</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Figtree', 'Segoe UI', sans-serif; background: #0f0f14; color: #fffffe; min-height: 100vh; }
+
+  nav { background: #0a0a0f; border-bottom: 1px solid #1e1e2e; padding: 14px 32px; display: flex; align-items: center; gap: 28px; }
+  nav .logo { font-weight: 800; font-size: 16px; color: #00b4d8; }
+  nav a { font-size: 13px; color: #94a1b2; text-decoration: none; }
+
+  .page { max-width: 680px; margin: 0 auto; padding: 32px 24px; }
+
+  .topbar { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+  .back-btn { color: #94a1b2; font-size: 13px; cursor: pointer; }
+  .back-btn:hover { color: #00b4d8; }
+  .mode-title { font-size: 13px; font-weight: 700; color: #fffffe; }
+  .category-pill { background: #00b4d820; border: 1px solid #00b4d840; border-radius: 20px; padding: 3px 10px; font-size: 11px; color: #00b4d8; margin-left: auto; }
+
+  .progress-row { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+  .progress-label { font-size: 12px; color: #94a1b2; white-space: nowrap; }
+  .progress-bar { flex: 1; height: 6px; background: #1e1e2e; border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 55%; background: linear-gradient(90deg, #00b4d8, #90e0ef); border-radius: 3px; }
+  .score { font-size: 12px; color: #94a1b2; white-space: nowrap; }
+
+  /* Definition card */
+  .def-card { background: #16213e; border: 1px solid #1e1e2e; border-radius: 16px; padding: 32px 36px; margin-bottom: 20px; }
+  .q-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #00b4d8; margin-bottom: 14px; font-weight: 700; }
+  .def-text { font-size: 15px; color: #94a1b2; line-height: 1.7; }
+  .def-text strong { color: #fffffe; }
+
+  /* Input area */
+  .input-area { margin-bottom: 16px; }
+  .input-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #4a5568; margin-bottom: 8px; font-weight: 700; }
+
+  .input-row { display: flex; gap: 10px; align-items: center; }
+  .term-input { flex: 1; background: #16213e; border: 1px solid #1e1e2e; border-radius: 10px; padding: 14px 18px; font-size: 16px; color: #fffffe; font-family: inherit; outline: none; transition: border-color 0.15s; }
+  .term-input:focus { border-color: #00b4d8; }
+  .term-input.correct { border-color: #2cb67d; background: #0d2a1e; }
+  .term-input.wrong { border-color: #ff6b6b; background: #2a0d0d; }
+  .submit-btn { background: #00b4d8; color: #0f0f14; border: none; border-radius: 10px; padding: 14px 20px; font-size: 14px; font-weight: 800; cursor: pointer; white-space: nowrap; }
+  .submit-btn:hover { background: #90e0ef; }
+
+  /* Fuzzy hint */
+  .fuzzy-hint { font-size: 11px; color: #4a5568; margin-top: 6px; }
+  .fuzzy-hint span { color: #00b4d8; cursor: pointer; text-decoration: underline; }
+
+  /* Feedback */
+  .feedback { border-radius: 10px; padding: 14px 18px; margin-bottom: 20px; display: flex; gap: 12px; align-items: flex-start; }
+  .feedback.correct-fb { background: #0d2a1e; border: 1px solid #2cb67d40; }
+  .feedback.wrong-fb { background: #2a0d0d; border: 1px solid #ff6b6b40; }
+  .fb-icon { font-size: 18px; flex-shrink: 0; }
+  .fb-body { flex: 1; }
+  .fb-answer { font-size: 14px; font-weight: 700; color: #fffffe; margin-bottom: 4px; }
+  .fb-note { font-size: 12px; color: #94a1b2; line-height: 1.5; }
+
+  .next-btn { width: 100%; background: #00b4d8; color: #0f0f14; border: none; border-radius: 10px; padding: 14px; font-size: 14px; font-weight: 800; cursor: pointer; }
+  .next-btn:hover { background: #90e0ef; }
+
+  .keyboard-hint { text-align: center; font-size: 11px; color: #4a5568; margin-top: 12px; }
+  kbd { background: #1e1e2e; border: 1px solid #2a2a3e; border-radius: 4px; padding: 2px 6px; font-size: 10px; color: #94a1b2; font-family: monospace; }
+
+  .demo-toggle { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
+  .demo-btn { background: #16213e; border: 1px solid #1e1e2e; border-radius: 8px; padding: 6px 14px; font-size: 12px; color: #94a1b2; cursor: pointer; }
+  .demo-btn.active { border-color: #00b4d8; color: #00b4d8; }
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">BG</span>
+  <a href="#">Home</a>
+  <a href="#">Study</a>
+</nav>
+
+<div class="page">
+
+  <div class="topbar">
+    <span class="back-btn">← Back to Hub</span>
+    <span class="mode-title">🔤 Type the Term</span>
+    <span class="category-pill">Harmony</span>
+  </div>
+
+  <div class="progress-row">
+    <span class="progress-label">Q 11 of 20</span>
+    <div class="progress-bar"><div class="progress-fill"></div></div>
+    <span class="score">9 ✓ &nbsp; 1 ✕</span>
+  </div>
+
+  <div class="demo-toggle">
+    <button class="demo-btn active" onclick="showBlank()">Unanswered</button>
+    <button class="demo-btn" onclick="showCorrect()">Correct</button>
+    <button class="demo-btn" onclick="showWrong()">Wrong</button>
+  </div>
+
+  <div class="def-card">
+    <div class="q-label">Name this term</div>
+    <div class="def-text">
+      A major triad built on <strong>ra (↓^2)</strong>, typically found in <strong>first inversion</strong>. Essentially a chromatic version of iio6 — a chromatic predominant. More dramatic than iio6 due to its chromatic root. The ↓^2 resolves down to ^7, sometimes passing through ^1.
+    </div>
+  </div>
+
+  <div class="input-area">
+    <div class="input-label">Your Answer</div>
+    <div class="input-row">
+      <input class="term-input" id="answer-input" type="text" placeholder="Type the term…" />
+      <button class="submit-btn" onclick="checkAnswer()">Check</button>
+    </div>
+    <div class="fuzzy-hint">Spelling doesn't have to be perfect. <span onclick="giveUp()">Give up &amp; show answer</span></div>
+  </div>
+
+  <div id="feedback" style="display:none" class="feedback correct-fb">
+    <span class="fb-icon" id="fb-icon">✅</span>
+    <div class="fb-body">
+      <div class="fb-answer" id="fb-answer"></div>
+      <div class="fb-note" id="fb-note"></div>
+    </div>
+  </div>
+
+  <button class="next-btn" id="next-btn" style="display:none">Next Question →</button>
+  <div class="keyboard-hint"><kbd>Enter</kbd> to check &nbsp;·&nbsp; <kbd>Tab</kbd> next question</div>
+
+</div>
+
+<script>
+  const correctAnswer = "Neapolitan Sixth";
+
+  function checkAnswer() {
+    const val = document.getElementById('answer-input').value.trim();
+    if (!val) return;
+    const normalized = val.toLowerCase().replace(/[^a-z0-9]/g,'');
+    const target = correctAnswer.toLowerCase().replace(/[^a-z0-9]/g,'');
+    const isCorrect = normalized === target ||
+      normalized.includes('neapolitan') ||
+      normalized === 'bii6' || normalized === 'flatii6';
+    showResult(isCorrect, val);
+  }
+
+  function giveUp() {
+    showResult(false, '');
+  }
+
+  function showResult(isCorrect, userAnswer) {
+    const input = document.getElementById('answer-input');
+    const fb = document.getElementById('feedback');
+    input.classList.add(isCorrect ? 'correct' : 'wrong');
+    fb.className = 'feedback ' + (isCorrect ? 'correct-fb' : 'wrong-fb');
+    fb.style.display = 'flex';
+    document.getElementById('fb-icon').textContent = isCorrect ? '✅' : '❌';
+    document.getElementById('fb-answer').textContent = isCorrect
+      ? `✓ ${correctAnswer}`
+      : `Answer: ${correctAnswer}${userAnswer ? ` (you typed: "${userAnswer}")` : ''}`;
+    document.getElementById('fb-note').textContent = isCorrect
+      ? 'Also written as ♭II6. Functions like iio6 but with a more dramatic chromatic effect.'
+      : 'The Neapolitan Sixth (♭II6) is a major triad on ↓^2, almost always in first inversion, used as a chromatic predominant.';
+    document.getElementById('next-btn').style.display = 'block';
+    document.querySelectorAll('.demo-btn').forEach((b,i) => b.classList.toggle('active', i === (isCorrect ? 1 : 2)));
+  }
+
+  function showBlank() {
+    const input = document.getElementById('answer-input');
+    input.value = '';
+    input.className = 'term-input';
+    document.getElementById('feedback').style.display = 'none';
+    document.getElementById('next-btn').style.display = 'none';
+    document.querySelectorAll('.demo-btn').forEach((b,i) => b.classList.toggle('active', i===0));
+  }
+  function showCorrect() { showBlank(); document.getElementById('answer-input').value = 'Neapolitan Sixth'; checkAnswer(); }
+  function showWrong() { showBlank(); document.getElementById('answer-input').value = 'Pivot Chord'; checkAnswer(); }
+</script>
+</body>
+</html>

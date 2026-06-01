@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study Hub Mockup</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Figtree', 'Segoe UI', sans-serif; background: #0f0f14; color: #fffffe; padding: 0; }
+
+  nav { background: #0a0a0f; border-bottom: 1px solid #1e1e2e; padding: 14px 32px; display: flex; align-items: center; gap: 28px; }
+  nav .logo { font-weight: 800; font-size: 16px; color: #00b4d8; }
+  nav a { font-size: 13px; color: #94a1b2; text-decoration: none; }
+  nav a.active { color: #00b4d8; }
+
+  .page { max-width: 900px; margin: 0 auto; padding: 40px 24px; }
+
+  h1 { font-size: 26px; font-weight: 800; color: #fffffe; margin-bottom: 6px; }
+  .subtitle { font-size: 14px; color: #94a1b2; margin-bottom: 32px; }
+
+  /* Session banner */
+  .session-banner { background: #16213e; border: 1px solid #00b4d820; border-radius: 12px; padding: 16px 20px; margin-bottom: 28px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .session-stat { display: flex; flex-direction: column; }
+  .session-stat .val { font-size: 18px; font-weight: 800; color: #00b4d8; }
+  .session-stat .lbl { font-size: 11px; color: #94a1b2; text-transform: uppercase; letter-spacing: 1px; }
+  .divider { width: 1px; height: 36px; background: #1e1e2e; }
+  .weak-tag { background: #2d1b1b; border: 1px solid #ff6b6b40; border-radius: 20px; padding: 4px 12px; font-size: 11px; color: #ff6b6b; margin-left: auto; }
+
+  /* Category filter */
+  .section-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #00b4d8; font-weight: 700; margin-bottom: 12px; }
+  .category-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 32px; }
+  .cat-btn { background: #16213e; border: 1px solid #1e1e2e; border-radius: 20px; padding: 6px 14px; font-size: 12px; color: #94a1b2; cursor: pointer; transition: all 0.15s; }
+  .cat-btn.active { background: #00b4d820; border-color: #00b4d8; color: #00b4d8; }
+  .cat-btn:hover { border-color: #00b4d860; color: #fffffe; }
+
+  /* Mode cards */
+  .modes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 32px; }
+  .mode-card { background: #16213e; border: 1px solid #1e1e2e; border-radius: 14px; padding: 24px; cursor: pointer; transition: all 0.15s; position: relative; overflow: hidden; }
+  .mode-card:hover { border-color: #00b4d8; transform: translateY(-2px); }
+  .mode-card.selected { border-color: #00b4d8; background: #0a192f; }
+  .mode-icon { font-size: 28px; margin-bottom: 10px; }
+  .mode-name { font-size: 15px; font-weight: 700; color: #fffffe; margin-bottom: 4px; }
+  .mode-desc { font-size: 12px; color: #94a1b2; line-height: 1.5; }
+  .mode-badge { position: absolute; top: 14px; right: 14px; background: #00b4d820; border: 1px solid #00b4d840; border-radius: 10px; padding: 2px 8px; font-size: 10px; color: #00b4d8; }
+
+  /* Start button */
+  .start-btn { width: 100%; background: #00b4d8; color: #0f0f14; border: none; border-radius: 10px; padding: 16px; font-size: 15px; font-weight: 800; cursor: pointer; letter-spacing: 0.5px; }
+  .start-btn:hover { background: #90e0ef; }
+
+  .term-count { text-align: center; font-size: 12px; color: #4a5568; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">BG</span>
+  <a href="#">Home</a>
+  <a href="#" class="active">Study</a>
+  <a href="#">About</a>
+</nav>
+
+<div class="page">
+  <h1>Music Theory Study</h1>
+  <p class="subtitle">116 terms · Session in progress</p>
+
+  <!-- Session stats from cookie -->
+  <div class="session-banner">
+    <div class="session-stat"><span class="val">34</span><span class="lbl">Mastered</span></div>
+    <div class="divider"></div>
+    <div class="session-stat"><span class="val">12</span><span class="lbl">Studying</span></div>
+    <div class="divider"></div>
+    <div class="session-stat"><span class="val">7🔥</span><span class="lbl">Streak</span></div>
+    <div class="divider"></div>
+    <div class="session-stat"><span class="val">70</span><span class="lbl">Remaining</span></div>
+    <div class="weak-tag">⚠ 8 weak terms</div>
+  </div>
+
+  <!-- Category filter -->
+  <div class="section-label">Study Category</div>
+  <div class="category-row">
+    <button class="cat-btn active">All Terms (116)</button>
+    <button class="cat-btn">Modes (7)</button>
+    <button class="cat-btn">Scales (6)</button>
+    <button class="cat-btn">Harmony (20)</button>
+    <button class="cat-btn">Voice Leading (5)</button>
+    <button class="cat-btn">Fugue (8)</button>
+    <button class="cat-btn">Rhythm (12)</button>
+    <button class="cat-btn">Form (25)</button>
+    <button class="cat-btn">Instruments (16)</button>
+  </div>
+
+  <!-- Mode selection -->
+  <div class="section-label">Study Mode</div>
+  <div class="modes">
+    <div class="mode-card selected">
+      <div class="mode-icon">🃏</div>
+      <div class="mode-name">Flashcards</div>
+      <div class="mode-desc">Swipe right if you know it, left if you don't. Tracks mastered terms across your session.</div>
+      <div class="mode-badge">Last used</div>
+    </div>
+    <div class="mode-card">
+      <div class="mode-icon">🔤</div>
+      <div class="mode-name">Type the Term</div>
+      <div class="mode-desc">See the definition, type the term from memory. Best for deep learning.</div>
+    </div>
+    <div class="mode-card">
+      <div class="mode-icon">🎯</div>
+      <div class="mode-name">Multiple Choice</div>
+      <div class="mode-desc">4 options per question. Great for quick review and building recognition.</div>
+    </div>
+    <div class="mode-card">
+      <div class="mode-icon">🔗</div>
+      <div class="mode-name">Matching</div>
+      <div class="mode-desc">Match terms to their definitions. 8 pairs per round.</div>
+    </div>
+  </div>
+
+  <button class="start-btn">Start Flashcards — All Terms</button>
+  <div class="term-count">Starting from where you left off · Card 23 of 116</div>
+</div>
+
+</body>
+</html>
