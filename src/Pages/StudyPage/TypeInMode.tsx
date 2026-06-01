@@ -41,7 +41,8 @@ const TypeInMode = () => {
     return [...shuffle(weak), ...shuffle(rest), ...shuffle(mastered)]
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [index, setIndex] = useState(session.positions.type)
+  const savedPos = session.positions.type
+  const [index, setIndex] = useState(savedPos < ordered.length ? savedPos : 0)
   const [value, setValue] = useState("")
   const [result, setResult] = useState<"correct" | "wrong" | null>(null)
   const [correct, setCorrect] = useState(0)

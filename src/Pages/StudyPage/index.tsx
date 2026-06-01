@@ -143,7 +143,7 @@ const StudyHub = () => {
         >
           Start {modeObj.name} — {selectedCat === "all" ? "All Terms" : selectedCat}
         </Box>
-        {position > 0 && (
+        {position > 0 && selectedMode !== "quiz" && (
           <Text textAlign="center" fontSize="xs" color={colors.textMuted}>
             Continuing from card {position + 1} of {filteredTerms.length}
           </Text>

@@ -11,7 +11,8 @@ const FlashcardMode = () => {
   const { session, markMastered, markMissed, setPosition, setLastMode } = useStudySession()
   const category = (session.lastCategory ?? "all") as Parameters<typeof getTermsByCategory>[0]
   const allTerms = getTermsByCategory(category)
-  const [index, setIndex] = useState(session.positions.flashcards)
+  const savedPos = session.positions.flashcards
+  const [index, setIndex] = useState(savedPos < allTerms.length ? savedPos : 0)
   const [flipped, setFlipped] = useState(false)
   const [gotIt, setGotIt] = useState<number>(session.mastered.length)
   const [missed, setMissed] = useState<number>(session.missed.length)
