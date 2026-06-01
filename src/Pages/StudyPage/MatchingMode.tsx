@@ -48,6 +48,8 @@ const MatchingMode = () => {
 
   const [items, setItems] = useState<{ terms: MatchItem[]; defs: MatchItem[] }>(() => buildRound(roundTerms))
 
+  const isFlashing = items.terms.some(t => t.wrongFlash) || items.defs.some(d => d.wrongFlash)
+
   useEffect(() => {
     setItems(buildRound(roundTerms))
     setSelectedTerm(null)
@@ -64,13 +66,13 @@ const MatchingMode = () => {
   }
 
   function selectTerm(id: number) {
-    if (items.terms.find(t => t.id === id)?.matched) return
+    if (isFlashing || items.terms.find(t => t.id === id)?.matched) return
     setSelectedTerm(id)
     if (selectedDef !== null) attemptMatch(id, selectedDef)
   }
 
   function selectDef(id: number) {
-    if (items.defs.find(d => d.id === id)?.matched) return
+    if (isFlashing || items.defs.find(d => d.id === id)?.matched) return
     setSelectedDef(id)
     if (selectedTerm !== null) attemptMatch(selectedTerm, id)
   }
@@ -218,7 +220,7 @@ const MatchCell = ({ item, isSelected, onClick }: MatchCellProps) => {
   let textColor: string = colors.textMuted
 
   if (item.matched) { borderColor = "#2cb67d"; bg = "#0d2a1e"; textColor = "#2cb67d" }
-  else if (item.wrongFlash) { borderColor = "#ff6b6b"; bg = "#2a0d0d" }
+  else if (item.wrongFlash) { borderColor = "#ff6b6b"; bg = "#2a0d0d"; textColor = colors.textPrimary }
   else if (isSelected) { borderColor = colors.accent; bg = colors.deepBlue }
 
   return (
