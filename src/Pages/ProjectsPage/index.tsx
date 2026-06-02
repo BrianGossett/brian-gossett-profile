@@ -5,7 +5,7 @@ import { colors } from '../../Theme'
 import { PROJECTS, type Project } from '../../data/projects'
 
 const ProjectsPage = () => {
-  const [selectedId, setSelectedId] = useState(PROJECTS[0].id)
+  const [selectedId, setSelectedId] = useState(PROJECTS[0]?.id ?? '')
   const project = PROJECTS.find(p => p.id === selectedId) ?? PROJECTS[0]
 
   return (
@@ -51,6 +51,7 @@ interface ProjectCardProps {
 
 const ProjectCard = ({ project, selected, onClick }: ProjectCardProps) => (
   <Box
+    as="button"
     onClick={onClick}
     w="180px"
     flexShrink={0}
@@ -59,6 +60,7 @@ const ProjectCard = ({ project, selected, onClick }: ProjectCardProps) => (
     borderRadius="xl"
     p={4}
     cursor="pointer"
+    textAlign="left"
     _hover={{ borderColor: colors.accentSoft }}
   >
     <Text fontSize="2xl" mb={2}>{project.icon}</Text>
@@ -140,19 +142,35 @@ const ProjectDetail = ({ project }: { project: Project }) => (
           <Text fontSize="sm" color={colors.textMuted} lineHeight="1.7" mb={4}>
             {section.explanation}
           </Text>
-          <Box
-            as="pre"
-            bg={colors.pageBg}
-            border={`1px solid ${colors.border}`}
-            borderRadius="lg"
-            p={4}
-            overflowX="auto"
-            fontSize="xs"
-            color={colors.accent}
-            lineHeight="1.7"
-            fontFamily="monospace"
-          >
-            <Box as="code">{section.code}</Box>
+          <Box position="relative">
+            <Box
+              position="absolute"
+              top={2}
+              right={3}
+              fontSize="9px"
+              color={colors.textMuted}
+              textTransform="uppercase"
+              letterSpacing="wider"
+              fontFamily="monospace"
+            >
+              {section.language}
+            </Box>
+            <Box
+              as="pre"
+              bg={colors.pageBg}
+              border={`1px solid ${colors.border}`}
+              borderRadius="lg"
+              p={4}
+              pt={6}
+              overflowX="auto"
+              fontSize="xs"
+              color={colors.accent}
+              lineHeight="1.7"
+              fontFamily="monospace"
+              whiteSpace="pre"
+            >
+              <Box as="code">{section.code}</Box>
+            </Box>
           </Box>
         </Box>
       ))}
