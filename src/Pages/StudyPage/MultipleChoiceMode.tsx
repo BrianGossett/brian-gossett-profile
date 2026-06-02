@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from "react"
 import { Box, Flex, Text, VStack } from "@chakra-ui/react"
-import { useNavigate } from "react-router"
+import { useNavigate, useParams } from "react-router"
 import PageContainer from "../../Components/Container"
 import { colors } from "../../Theme"
-import { getTermsByCategory, ALL_TERMS, type Term } from "../../data/terms"
+import { type Term } from "../../data/terms"
+import { useDeckById, filterByCategory } from "../../hooks/useDecks"
 import { useStudySession } from "../../hooks/useStudySession"
 
 const QUIZ_SIZE = 40
@@ -27,11 +28,13 @@ function getDistractors(correct: Term, pool: Term[]): Term[] {
 const MultipleChoiceMode = () => {
   const navigate = useNavigate()
   const { session, markMastered, markMissed, setPosition, setLastMode } = useStudySession()
-  const category = (session.lastCategory ?? "all") as Parameters<typeof getTermsByCategory>[0]
-  const filteredTerms = getTermsByCategory(category)
+  const { deckId = 'default' } = useParams<{ deckId: string }>()
+  const deck = useDeckById(deckId)
+  const category = session.lastCategory ?? 'all'
+  const filteredTerms = filterByCategory(deck.terms, category)
 
   const questions = useMemo(() => {
-    const pool = filteredTerms.length >= 4 ? filteredTerms : ALL_TERMS
+    const pool = filteredTerms.length >= 4 ? filteredTerms : deck.terms
     return shuffle(filteredTerms).slice(0, Math.min(QUIZ_SIZE, filteredTerms.length)).map(term => ({
       term,
       options: shuffle([term, ...getDistractors(term, pool)]),

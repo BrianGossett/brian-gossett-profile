@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useMemo } from "react"
 import { Box, Flex, Input, Text, VStack } from "@chakra-ui/react"
-import { useNavigate } from "react-router"
+import { useNavigate, useParams } from "react-router"
 import PageContainer from "../../Components/Container"
 import { colors } from "../../Theme"
-import { getTermsByCategory, type Term } from "../../data/terms"
+import { type Term } from "../../data/terms"
+import { useDeckById, filterByCategory } from "../../hooks/useDecks"
 import { useStudySession } from "../../hooks/useStudySession"
 
 function normalize(s: string): string {
@@ -31,8 +32,10 @@ function shuffle<T>(arr: T[]): T[] {
 const TypeInMode = () => {
   const navigate = useNavigate()
   const { session, markMastered, markMissed, setPosition, setLastMode } = useStudySession()
-  const category = (session.lastCategory ?? "all") as Parameters<typeof getTermsByCategory>[0]
-  const filteredTerms = getTermsByCategory(category)
+  const { deckId = 'default' } = useParams<{ deckId: string }>()
+  const deck = useDeckById(deckId)
+  const category = session.lastCategory ?? 'all'
+  const filteredTerms = filterByCategory(deck.terms, category)
 
   const ordered = useMemo(() => {
     const weak = filteredTerms.filter(t => (session.missedCounts[t.id] ?? 0) >= 2)

@@ -1,16 +1,19 @@
 import { useEffect, useState, useCallback } from "react"
 import { Box, Flex, Text, VStack } from "@chakra-ui/react"
-import { useNavigate } from "react-router"
+import { useNavigate, useParams } from "react-router"
 import PageContainer from "../../Components/Container"
 import { colors } from "../../Theme"
-import { getTermsByCategory, type Term } from "../../data/terms"
+import { type Term } from "../../data/terms"
+import { useDeckById, filterByCategory } from "../../hooks/useDecks"
 import { useStudySession } from "../../hooks/useStudySession"
 
 const FlashcardMode = () => {
   const navigate = useNavigate()
   const { session, markMastered, markMissed, setPosition, setLastMode } = useStudySession()
-  const category = (session.lastCategory ?? "all") as Parameters<typeof getTermsByCategory>[0]
-  const allTerms = getTermsByCategory(category)
+  const { deckId = 'default' } = useParams<{ deckId: string }>()
+  const deck = useDeckById(deckId)
+  const category = session.lastCategory ?? 'all'
+  const allTerms = filterByCategory(deck.terms, category)
   const savedPos = session.positions.flashcards
   const [index, setIndex] = useState(savedPos < allTerms.length ? savedPos : 0)
   const [flipped, setFlipped] = useState(false)
