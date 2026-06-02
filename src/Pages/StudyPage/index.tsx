@@ -3,7 +3,7 @@ import { Box, Flex, Text, Wrap, WrapItem, VStack } from '@chakra-ui/react'
 import { useNavigate } from 'react-router'
 import PageContainer from '../../Components/Container'
 import { colors } from '../../Theme'
-import { useDecks, useDeckById, getDeckCategories, filterByCategory, type Deck } from '../../hooks/useDecks'
+import { useDecks, getDeckCategories, filterByCategory, DEFAULT_DECK, type Deck } from '../../hooks/useDecks'
 import { useStudySession } from '../../hooks/useStudySession'
 import { decodeShareLink, encodeShareLink } from '../../utils/shareLink'
 import DeckModal from './DeckModal'
@@ -23,7 +23,9 @@ const StudyHub = () => {
   const { session, setLastMode, setLastCategory, setLastDeckId, setTermCount, resetSession } = useStudySession()
 
   const selectedDeckId = session.lastDeckId ?? 'default'
-  const selectedDeck = useDeckById(selectedDeckId)
+  const selectedDeck = selectedDeckId === 'default'
+    ? DEFAULT_DECK
+    : (customDecks.find(d => d.id === selectedDeckId) ?? DEFAULT_DECK)
   const selectedMode = (session.lastMode ?? 'flashcards') as ModeKey
   const selectedCat = session.lastCategory ?? 'all'
 
@@ -75,6 +77,14 @@ const StudyHub = () => {
           setImportError('Invalid file: missing name or terms.')
           return
         }
+        const hasValidTerms = (obj.terms as unknown[]).every(
+          (t) => typeof (t as Record<string, unknown>)?.term === 'string' &&
+                 typeof (t as Record<string, unknown>)?.definition === 'string'
+        )
+        if (!hasValidTerms) {
+          setImportError('Invalid file: terms must have "term" and "definition" string fields.')
+          return
+        }
         const terms = (obj.terms as Deck['terms']).map((t, i) => ({
           id: i + 1,
           category: typeof t.category === 'string' ? t.category : 'General',
@@ -83,6 +93,7 @@ const StudyHub = () => {
         }))
         const deck = createDeck(obj.name, terms)
         setLastDeckId(deck.id)
+        setLastCategory('all')
         setImportError(null)
         showToast('Deck imported!')
       } catch {
@@ -119,6 +130,7 @@ const StudyHub = () => {
     }))
     const deck = createDeck(sharePrompt.name, terms)
     setLastDeckId(deck.id)
+    setLastCategory('all')
     setSharePrompt(null)
     showToast('Deck added!')
   }
@@ -128,7 +140,7 @@ const StudyHub = () => {
   const clampedCount = Math.min(Math.max(4, termCount), Math.max(4, maxCount))
 
   const allDecks: Array<{ id: string; name: string; termCount: number }> = [
-    { id: 'default', name: 'Music Theory', termCount: selectedDeckId === 'default' ? selectedDeck.terms.length : 0 },
+    { id: 'default', name: 'Music Theory', termCount: DEFAULT_DECK.terms.length },
     ...customDecks.map(d => ({ id: d.id, name: d.name, termCount: d.terms.length })),
   ]
 

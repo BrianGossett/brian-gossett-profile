@@ -6,6 +6,7 @@ import type { Deck } from '../../hooks/useDecks'
 import type { Term } from '../../data/terms'
 
 interface TermRow {
+  id: string
   term: string
   definition: string
   category: string
@@ -20,8 +21,8 @@ interface DeckModalProps {
 const DeckModal = ({ initialDeck, onSave, onClose }: DeckModalProps) => {
   const [deckName, setDeckName] = useState(initialDeck?.name ?? '')
   const [rows, setRows] = useState<TermRow[]>(
-    initialDeck?.terms.map(t => ({ term: t.term, definition: t.definition, category: t.category })) ?? [
-      { term: '', definition: '', category: 'General' },
+    initialDeck?.terms.map(t => ({ id: crypto.randomUUID(), term: t.term, definition: t.definition, category: t.category })) ?? [
+      { id: crypto.randomUUID(), term: '', definition: '', category: 'General' },
     ]
   )
   const [error, setError] = useState<string | null>(null)
@@ -34,7 +35,7 @@ const DeckModal = ({ initialDeck, onSave, onClose }: DeckModalProps) => {
   }, [onClose])
 
   function addRow() {
-    setRows(prev => [...prev, { term: '', definition: '', category: prev[prev.length - 1]?.category ?? 'General' }])
+    setRows(prev => [...prev, { id: crypto.randomUUID(), term: '', definition: '', category: prev[prev.length - 1]?.category ?? 'General' }])
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
   }
 
@@ -119,7 +120,7 @@ const DeckModal = ({ initialDeck, onSave, onClose }: DeckModalProps) => {
 
           <VStack align="stretch" gap={2} mb={3}>
             {rows.map((row, i) => (
-              <Flex key={i} gap={2} align="center">
+              <Flex key={row.id} gap={2} align="center">
                 <Input
                   flex="1"
                   value={row.term}
