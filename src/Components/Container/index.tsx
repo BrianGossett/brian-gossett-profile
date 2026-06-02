@@ -25,6 +25,16 @@ export const Header = () => {
       <Link href="/#experience" color={colors.textMuted} fontSize="sm" _hover={{ color: colors.accent }} textDecoration="none">Experience</Link>
       <Link href="/#contact"    color={colors.textMuted} fontSize="sm" _hover={{ color: colors.accent }} textDecoration="none">Contact</Link>
       <NavLink
+        to="/projects"
+        style={({ isActive }) => ({
+          textDecoration: 'none',
+          fontSize: '14px',
+          color: isActive ? colors.accent : colors.textMuted,
+        })}
+      >
+        Projects
+      </NavLink>
+      <NavLink
         to="/study"
         style={({ isActive }) => ({
           textDecoration: 'none',

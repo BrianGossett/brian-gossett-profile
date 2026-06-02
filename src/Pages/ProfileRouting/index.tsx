@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router'
 import HomePage from '../HomePage'
 import ExamplePage from '../ExamplePage'
+import ProjectsPage from '../ProjectsPage'
 import StudyHub from '../StudyPage'
 import FlashcardMode from '../StudyPage/FlashcardMode'
 import MultipleChoiceMode from '../StudyPage/MultipleChoiceMode'
@@ -12,6 +13,7 @@ const ProfileRouting = () => {
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/examples" element={<ExamplePage />} />
+      <Route path="/projects" element={<ProjectsPage />} />
       <Route path="/study" element={<StudyHub />} />
       <Route path="/study/:deckId/flashcards" element={<FlashcardMode />} />
       <Route path="/study/:deckId/quiz" element={<MultipleChoiceMode />} />
