@@ -13,10 +13,10 @@ const ProfileRouting = () => {
       <Route path="/" element={<HomePage />} />
       <Route path="/examples" element={<ExamplePage />} />
       <Route path="/study" element={<StudyHub />} />
-      <Route path="/study/flashcards" element={<FlashcardMode />} />
-      <Route path="/study/quiz" element={<MultipleChoiceMode />} />
-      <Route path="/study/type" element={<TypeInMode />} />
-      <Route path="/study/match" element={<MatchingMode />} />
+      <Route path="/study/:deckId/flashcards" element={<FlashcardMode />} />
+      <Route path="/study/:deckId/quiz" element={<MultipleChoiceMode />} />
+      <Route path="/study/:deckId/type" element={<TypeInMode />} />
+      <Route path="/study/:deckId/match" element={<MatchingMode />} />
       <Route path="*" element={<div style={{ justifyContent: 'center', display: 'flex', alignItems: 'center', width: '100vw', height: '100vh' }}>404 Not Found</div>} />
     </Routes>
   )
