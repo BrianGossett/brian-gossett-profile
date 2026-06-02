@@ -7,22 +7,31 @@ import { type Term } from "../../data/terms"
 import { useDeckById, filterByCategory } from "../../hooks/useDecks"
 import { useStudySession } from "../../hooks/useStudySession"
 
+function shuffleArray<T>(arr: T[]): T[] {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
 const FlashcardMode = () => {
   const navigate = useNavigate()
   const { session, markMastered, markMissed, setPosition, setLastMode } = useStudySession()
   const { deckId = 'default' } = useParams<{ deckId: string }>()
   const deck = useDeckById(deckId)
   const category = session.lastCategory ?? 'all'
-  const allTerms = filterByCategory(deck.terms, category)
+  const [terms, setTerms] = useState(() => filterByCategory(deck.terms, category))
   const savedPos = session.positions.flashcards
-  const [index, setIndex] = useState(savedPos < allTerms.length ? savedPos : 0)
+  const [index, setIndex] = useState(savedPos < terms.length ? savedPos : 0)
   const [flipped, setFlipped] = useState(false)
   const [gotIt, setGotIt] = useState<number>(session.mastered.length)
   const [missed, setMissed] = useState<number>(session.missed.length)
 
   useEffect(() => { setLastMode("flashcards") }, [setLastMode])
 
-  const term: Term | undefined = allTerms[index]
+  const term: Term | undefined = terms[index]
 
   const advance = useCallback((knew: boolean) => {
     if (!term) return
@@ -34,18 +43,25 @@ const FlashcardMode = () => {
     setFlipped(false)
   }, [term, index, markMastered, markMissed, setPosition])
 
+  function handleShuffle() {
+    setTerms(shuffleArray(terms))
+    setIndex(0)
+    setPosition('flashcards', 0)
+    setFlipped(false)
+  }
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === " ") { e.preventDefault(); setFlipped(f => !f) }
-      if (e.key === "ArrowRight" && flipped) advance(true)
-      if (e.key === "ArrowLeft"  && flipped) advance(false)
+      if (e.key === "ArrowRight") advance(true)
+      if (e.key === "ArrowLeft")  advance(false)
     }
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
   }, [flipped, advance])
 
-  const progress = allTerms.length > 0 ? (index / allTerms.length) * 100 : 0
-  const remaining = allTerms.length - index
+  const progress = terms.length > 0 ? (index / terms.length) * 100 : 0
+  const remaining = terms.length - index
 
   if (!term) {
     return (
@@ -54,9 +70,9 @@ const FlashcardMode = () => {
           <Text fontSize="3xl" mb={4}>🎉</Text>
           <Text fontSize="xl" fontWeight="800" color={colors.textPrimary} mb={2}>All done!</Text>
           <Text fontSize="sm" color={colors.textMuted} mb={8}>
-            {gotIt} got it · {missed} missed · {allTerms.length} total
+            {gotIt} got it · {missed} missed · {terms.length} total
           </Text>
-          <ActionBtn onClick={() => { setIndex(0); setPosition("flashcards", 0); setFlipped(false); setGotIt(0); setMissed(0) }}>
+          <ActionBtn onClick={() => { setTerms(filterByCategory(deck.terms, category)); setIndex(0); setPosition("flashcards", 0); setFlipped(false); setGotIt(0); setMissed(0) }}>
             Restart Deck
           </ActionBtn>
           <Box mt={4}>
@@ -77,6 +93,19 @@ const FlashcardMode = () => {
           <Box as="button" onClick={() => navigate("/study")} fontSize="sm" color={colors.textMuted} background="none" border="none" cursor="pointer" _hover={{ color: colors.accent }}>
             ← Back
           </Box>
+          <Box
+            as="button"
+            onClick={handleShuffle}
+            fontSize="sm"
+            color={colors.textMuted}
+            background="none"
+            border="none"
+            cursor="pointer"
+            title="Shuffle deck"
+            _hover={{ color: colors.accent }}
+          >
+            🔀
+          </Box>
           <Text fontSize="sm" fontWeight="700" color={colors.textPrimary}>🃏 Flashcards</Text>
           <Box ml="auto" bg={colors.accentDim} border={`1px solid ${colors.accentDim}`} borderRadius="full" px={3} py="2px" fontSize="xs" color={colors.accent}>
             {category === "all" ? "All Terms" : category}
@@ -85,7 +114,7 @@ const FlashcardMode = () => {
 
         {/* Progress */}
         <Flex align="center" gap={3} mb={2}>
-          <Text fontSize="xs" color={colors.textMuted} whiteSpace="nowrap">Card {index + 1} of {allTerms.length}</Text>
+          <Text fontSize="xs" color={colors.textMuted} whiteSpace="nowrap">Card {index + 1} of {terms.length}</Text>
           <Box flex={1} h="6px" bg={colors.border} borderRadius="full" overflow="hidden">
             <Box h="100%" w={`${progress}%`} bg={colors.accent} borderRadius="full" />
           </Box>
@@ -141,16 +170,16 @@ const FlashcardMode = () => {
           <VStack gap={2}>
             <Box
               as="button"
-              onClick={() => flipped && advance(false)}
+              onClick={() => advance(false)}
               w="64px" h="64px"
               borderRadius="full"
               border="2px solid #ff6b6b"
               color="#ff6b6b"
               fontSize="xl"
               bg="transparent"
-              cursor={flipped ? "pointer" : "not-allowed"}
-              opacity={flipped ? 1 : 0.3}
-              _hover={flipped ? { bg: "#ff6b6b20" } : {}}
+              cursor="pointer"
+              opacity={1}
+              _hover={{ bg: "#ff6b6b20" }}
               display="flex" alignItems="center" justifyContent="center"
             >
               ✕
@@ -158,21 +187,21 @@ const FlashcardMode = () => {
             <Text fontSize="xs" color={colors.textMuted} textTransform="uppercase" letterSpacing="wider">Still learning</Text>
           </VStack>
 
-          <Text fontSize="sm" color={colors.textMuted}>{flipped ? "Know it?" : "Flip first"}</Text>
+          <Text fontSize="sm" color={colors.textMuted}>Rate anytime</Text>
 
           <VStack gap={2}>
             <Box
               as="button"
-              onClick={() => flipped && advance(true)}
+              onClick={() => advance(true)}
               w="64px" h="64px"
               borderRadius="full"
               border="2px solid #2cb67d"
               color="#2cb67d"
               fontSize="xl"
               bg="transparent"
-              cursor={flipped ? "pointer" : "not-allowed"}
-              opacity={flipped ? 1 : 0.3}
-              _hover={flipped ? { bg: "#2cb67d20" } : {}}
+              cursor="pointer"
+              opacity={1}
+              _hover={{ bg: "#2cb67d20" }}
               display="flex" alignItems="center" justifyContent="center"
             >
               ✓
@@ -182,7 +211,7 @@ const FlashcardMode = () => {
         </Flex>
 
         <Text textAlign="center" fontSize="xs" color={colors.border}>
-          Space to flip · ← still learning · → got it
+          Space to flip · ← still learning · → got it · 🔀 shuffle
         </Text>
       </Box>
     </PageContainer>
