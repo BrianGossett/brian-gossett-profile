@@ -36,12 +36,13 @@ const TypeInMode = () => {
   const deck = useDeckById(deckId)
   const category = session.lastCategory ?? 'all'
   const filteredTerms = filterByCategory(deck.terms, category)
+  const termCount = Math.max(4, Math.min(session.termCounts.type, filteredTerms.length))
 
   const ordered = useMemo(() => {
     const weak = filteredTerms.filter(t => (session.missedCounts[t.id] ?? 0) >= 2)
     const rest = filteredTerms.filter(t => !session.mastered.includes(t.id) && !weak.find(w => w.id === t.id))
     const mastered = filteredTerms.filter(t => session.mastered.includes(t.id))
-    return [...shuffle(weak), ...shuffle(rest), ...shuffle(mastered)]
+    return [...shuffle(weak), ...shuffle(rest), ...shuffle(mastered)].slice(0, termCount)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const savedPos = session.positions.type

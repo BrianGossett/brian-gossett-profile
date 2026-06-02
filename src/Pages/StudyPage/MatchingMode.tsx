@@ -33,8 +33,9 @@ const MatchingMode = () => {
   const deck = useDeckById(deckId)
   const category = session.lastCategory ?? 'all'
   const filteredTerms = filterByCategory(deck.terms, category)
+  const termCount = Math.max(4, Math.min(session.termCounts.match, filteredTerms.length))
 
-  const shuffledAll = useMemo(() => shuffle(filteredTerms), []) // eslint-disable-line react-hooks/exhaustive-deps
+  const shuffledAll = useMemo(() => shuffle(filteredTerms).slice(0, termCount), []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [roundIndex, setRoundIndex] = useState(session.positions.match)
   const [selectedTerm, setSelectedTerm] = useState<number | null>(null)
@@ -118,7 +119,7 @@ const MatchingMode = () => {
   const matched = items.terms.filter(t => t.matched).length
   const total = roundTerms.length
   const progress = total > 0 ? (matched / total) * 100 : 0
-  const totalRounds = Math.ceil(filteredTerms.length / ROUND_SIZE)
+  const totalRounds = Math.ceil(shuffledAll.length / ROUND_SIZE)
   const isLastRound = (roundIndex + 1) >= totalRounds
 
   if (roundTerms.length === 0) {

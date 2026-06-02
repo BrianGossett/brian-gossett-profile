@@ -7,8 +7,6 @@ import { type Term } from "../../data/terms"
 import { useDeckById, filterByCategory } from "../../hooks/useDecks"
 import { useStudySession } from "../../hooks/useStudySession"
 
-const QUIZ_SIZE = 40
-
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr]
   for (let i = a.length - 1; i > 0; i--) {
@@ -32,10 +30,11 @@ const MultipleChoiceMode = () => {
   const deck = useDeckById(deckId)
   const category = session.lastCategory ?? 'all'
   const filteredTerms = filterByCategory(deck.terms, category)
+  const termCount = Math.max(4, Math.min(session.termCounts.quiz, filteredTerms.length))
 
   const questions = useMemo(() => {
     const pool = filteredTerms.length >= 4 ? filteredTerms : deck.terms
-    return shuffle(filteredTerms).slice(0, Math.min(QUIZ_SIZE, filteredTerms.length)).map(term => ({
+    return shuffle(filteredTerms).slice(0, termCount).map(term => ({
       term,
       options: shuffle([term, ...getDistractors(term, pool)]),
     }))
