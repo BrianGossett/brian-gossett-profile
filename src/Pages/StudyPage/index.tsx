@@ -120,6 +120,12 @@ const StudyHub = () => {
     navigator.clipboard.writeText(url).then(() => showToast('Link copied!')).catch(() => showToast('Copy failed'))
   }
 
+  function handleCopyDeck() {
+    const copy = createDeck(`${selectedDeck.name} (copy)`, [...selectedDeck.terms])
+    setLastDeckId(copy.id)
+    showToast('Deck copied!')
+  }
+
   function handleAcceptShare() {
     if (!sharePrompt) return
     const terms = sharePrompt.terms.map((t, i) => ({
@@ -257,11 +263,15 @@ const StudyHub = () => {
               {selectedDeckId === 'default' ? '🎵 Music Theory' : `📚 ${selectedDeck.name}`}
             </Text>
             {selectedDeckId === 'default' && (
-              <Box bg={colors.accentDim} border={`1px solid ${colors.accentDim}`} borderRadius="full" px={2} py="1px" fontSize="9px" color={colors.accent}>Default</Box>
+              <Flex align="center" gap={2}>
+                <Box bg={colors.accentDim} border={`1px solid ${colors.accentDim}`} borderRadius="full" px={2} py="1px" fontSize="9px" color={colors.accent}>Default</Box>
+                <Box as="button" onClick={handleCopyDeck} title="Duplicate deck" bg="none" border={`1px solid ${colors.border}`} borderRadius="md" px={2} py={1} fontSize="sm" color={colors.textMuted} cursor="pointer" _hover={{ color: colors.accent }}>⧉</Box>
+              </Flex>
             )}
             {selectedDeckId !== 'default' && (
               <Flex gap={2} ml="auto">
                 <Box as="button" onClick={() => setModalState({ open: true, deck: selectedDeck })} title="Edit deck" bg="none" border={`1px solid ${colors.border}`} borderRadius="md" px={2} py={1} fontSize="sm" color={colors.textMuted} cursor="pointer" _hover={{ color: colors.accent }}>✏</Box>
+                <Box as="button" onClick={handleCopyDeck} title="Duplicate deck" bg="none" border={`1px solid ${colors.border}`} borderRadius="md" px={2} py={1} fontSize="sm" color={colors.textMuted} cursor="pointer" _hover={{ color: colors.accent }}>⧉</Box>
                 <Box as="button" onClick={handleExport} title="Download JSON" bg="none" border={`1px solid ${colors.border}`} borderRadius="md" px={2} py={1} fontSize="sm" color={colors.textMuted} cursor="pointer" _hover={{ color: colors.accent }}>↓</Box>
                 <Box as="button" onClick={handleShareLink} title="Copy share link" bg="none" border={`1px solid ${colors.border}`} borderRadius="md" px={2} py={1} fontSize="sm" color={colors.textMuted} cursor="pointer" _hover={{ color: colors.accent }}>🔗</Box>
                 <Box
@@ -340,7 +350,28 @@ const StudyHub = () => {
                   bg="none" border="none" cursor="pointer" color={colors.textMuted} fontSize="lg" lineHeight={1}
                   _hover={{ color: colors.accent }}
                 >−</Box>
-                <Text fontSize="sm" fontWeight="700" color={colors.textPrimary} minW="28px" textAlign="center">{clampedCount}</Text>
+                <input
+                  type="number"
+                  value={clampedCount}
+                  min={4}
+                  max={maxCount}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value, 10)
+                    if (!isNaN(v)) setTermCount(selectedMode as 'quiz' | 'type' | 'match', Math.min(maxCount, Math.max(4, v)))
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: colors.textPrimary,
+                    fontWeight: 700,
+                    fontSize: '14px',
+                    textAlign: 'center',
+                    width: '40px',
+                    padding: 0,
+                    outline: 'none',
+                    appearance: 'textfield',
+                  }}
+                />
                 <Box
                   as="button"
                   onClick={() => setTermCount(selectedMode as 'quiz' | 'type' | 'match', Math.min(maxCount, clampedCount + 1))}
