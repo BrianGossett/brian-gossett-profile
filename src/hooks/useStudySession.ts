@@ -9,6 +9,8 @@ interface StudySession {
   streak: number
   lastMode: string
   lastCategory: string
+  lastDeckId: string
+  termCounts: { quiz: number; type: number; match: number }
   positions: {
     flashcards: number
     quiz: number
@@ -24,6 +26,8 @@ const DEFAULT_SESSION: StudySession = {
   streak: 0,
   lastMode: "flashcards",
   lastCategory: "all",
+  lastDeckId: "default",
+  termCounts: { quiz: 20, type: 20, match: 20 },
   positions: { flashcards: 0, quiz: 0, type: 0, match: 0 },
 }
 
@@ -88,6 +92,18 @@ export function useStudySession() {
     update({ lastCategory: category })
   }, [update])
 
+  const setLastDeckId = useCallback((deckId: string) => {
+    update({ lastDeckId: deckId })
+  }, [update])
+
+  const setTermCount = useCallback((mode: 'quiz' | 'type' | 'match', count: number) => {
+    setSession(prev => {
+      const next = { ...prev, termCounts: { ...prev.termCounts, [mode]: count } }
+      save(next)
+      return next
+    })
+  }, [])
+
   const resetSession = useCallback(() => {
     sessionStorage.removeItem(SESSION_KEY)
     setSession({ ...DEFAULT_SESSION })
@@ -105,6 +121,8 @@ export function useStudySession() {
     setPosition,
     setLastMode,
     setLastCategory,
+    setLastDeckId,
+    setTermCount,
     resetSession,
   }
 }
