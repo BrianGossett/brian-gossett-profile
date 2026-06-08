@@ -1,112 +1,47 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
-import { Box, Flex, SimpleGrid, Text, VStack } from '@chakra-ui/react'
+import { Box, Flex, Text, VStack } from '@chakra-ui/react'
 import PageContainer from '../../Components/Container'
 import { colors } from '../../Theme'
-import { ALL_SCORES, type ScoreExcerpt } from '../../data/scores'
+import { ALL_SCORES, type ScoreExcerpt, randomScore, randomPage } from '../../data/scores'
 import PdfViewer from './shared/PdfViewer'
 import SelfGradeButtons from './shared/SelfGradeButtons'
 
-type Phase = 'browse' | 'practice' | 'grading'
+type Phase = 'practice' | 'grading'
 
-const ERA_COLOR: Record<string, string> = {
-  Baroque: '#7c5cbf',
-  Classical: '#2cb67d',
-  Romantic: '#e07b39',
-  '20th Century': '#ff6b6b',
+function pickRandom(): { score: ScoreExcerpt; page: number } {
+  const score = randomScore(ALL_SCORES)
+  return { score, page: randomPage(score) }
 }
 
 const ScoreAnalysis = () => {
   const navigate = useNavigate()
-  const [phase, setPhase] = useState<Phase>('browse')
-  const [score, setScore] = useState<ScoreExcerpt | null>(null)
-  const [answers, setAnswers] = useState<string[]>([])
-  const [grades, setGrades] = useState<(1 | 2 | 3 | null)[]>([])
+  const [{ score, page }, setScorePage] = useState(pickRandom)
+  const [phase, setPhase] = useState<Phase>('practice')
+  const [answers, setAnswers] = useState<string[]>(() => score.questions.map(() => ''))
+  const [grades, setGrades] = useState<(1 | 2 | 3 | null)[]>(() => score.questions.map(() => null))
   const [revealed, setRevealed] = useState(false)
 
-  function startPractice(s: ScoreExcerpt) {
-    setScore(s)
-    setAnswers(s.questions.map(() => ''))
-    setGrades(s.questions.map(() => null))
+  function nextScore() {
+    const next = pickRandom()
+    setScorePage(next)
+    setAnswers(next.score.questions.map(() => ''))
+    setGrades(next.score.questions.map(() => null))
     setRevealed(false)
     setPhase('practice')
   }
 
-  function reset() {
-    setScore(null)
-    setPhase('browse')
-  }
-
-  if (phase === 'browse') {
+  if (phase === 'practice') {
     return (
       <PageContainer>
         <Box px={8} py={4} borderBottom={`1px solid ${colors.border}`}>
           <Box as="button" onClick={() => navigate('/study/exam')} fontSize="sm" color={colors.textMuted} background="none" border="none" cursor="pointer" _hover={{ color: colors.accent }} mb={2}>
             ← Back to Exam Prep
           </Box>
-          <Text fontSize="xl" fontWeight="800" color={colors.textPrimary}>🎼 Score Analysis</Text>
-          <Text fontSize="xs" color={colors.textMuted}>Browse any score and answer analysis questions at your own pace.</Text>
+          <Text fontSize="xl" fontWeight="800" color={colors.textPrimary}>Score Analysis</Text>
         </Box>
         <Box p={{ base: 4, md: 8 }}>
-          {ALL_SCORES.length === 0 ? (
-            <Box bg={colors.surface} border={`1px solid ${colors.border}`} borderRadius="xl" p={8} textAlign="center">
-              <Text color={colors.textMuted} fontSize="sm">
-                No scores added yet — populate{' '}
-                <Text as="code" fontFamily="mono" fontSize="xs">src/data/scores.ts</Text>
-                {' '}to get started.
-              </Text>
-            </Box>
-          ) : (
-            <SimpleGrid columns={{ base: 1, sm: 2, md: 3 }} gap={4}>
-              {ALL_SCORES.map(s => (
-                <Box
-                  key={s.id}
-                  bg={colors.surface}
-                  border={`1px solid ${colors.border}`}
-                  borderRadius="xl"
-                  p={4}
-                  cursor="pointer"
-                  onClick={() => startPractice(s)}
-                  _hover={{ borderColor: colors.accent }}
-                >
-                  <Box
-                    display="inline-block"
-                    bg={ERA_COLOR[s.era] ?? colors.accentDim}
-                    color="#fff"
-                    fontSize="9px"
-                    fontWeight="700"
-                    px={2} py="2px"
-                    borderRadius="full"
-                    mb={2}
-                  >
-                    {s.era}
-                  </Box>
-                  <Text fontWeight="700" fontSize="sm" color={colors.textPrimary} mb={1}>{s.composer}</Text>
-                  <Text fontSize="xs" color={colors.textMuted} mb={2}>{s.title}</Text>
-                  <Text fontSize="9px" color={colors.border}>{s.questions.length} question{s.questions.length !== 1 ? 's' : ''}</Text>
-                </Box>
-              ))}
-            </SimpleGrid>
-          )}
-        </Box>
-      </PageContainer>
-    )
-  }
-
-  if (!score) return null
-
-  if (phase === 'practice') {
-    return (
-      <PageContainer>
-        <Box px={8} py={4} borderBottom={`1px solid ${colors.border}`}>
-          <Box as="button" onClick={reset} fontSize="sm" color={colors.textMuted} background="none" border="none" cursor="pointer" _hover={{ color: colors.accent }} mb={2}>
-            ← Back to scores
-          </Box>
-          <Text fontSize="xl" fontWeight="800" color={colors.textPrimary}>{score.composer}</Text>
-          <Text fontSize="xs" color={colors.textMuted}>{score.title}</Text>
-        </Box>
-        <Box p={{ base: 4, md: 8 }}>
-          <PdfViewer pdfPath={score.pdfPath} startPage={score.startPage} measures={score.measures} />
+          <PdfViewer pdfPath={score.pdfPath} page={page} />
           <VStack gap={6} align="stretch" mt={4}>
             {score.questions.map((q, i) => (
               <Box key={i}>
@@ -141,7 +76,6 @@ const ScoreAnalysis = () => {
     <PageContainer>
       <Box px={8} py={4} borderBottom={`1px solid ${colors.border}`}>
         <Text fontSize="xl" fontWeight="800" color={colors.textPrimary}>Self-Grade</Text>
-        <Text fontSize="xs" color={colors.textMuted}>{score.composer} — {score.title}</Text>
       </Box>
       <Box p={{ base: 4, md: 8 }}>
         <VStack gap={6} align="stretch">
@@ -155,10 +89,12 @@ const ScoreAnalysis = () => {
                 <Text fontSize="9px" color={colors.textMuted} mb={1}>YOUR ANSWER</Text>
                 <Text fontSize="sm" color={colors.textPrimary} whiteSpace="pre-wrap">{answers[i] || '(no answer)'}</Text>
               </Box>
-              <Box bg="#0d1a0d" border="1px solid #1a3a1a" borderRadius="lg" p={3} mb={3}>
-                <Text fontSize="9px" color="#2cb67d" mb={1}>MODEL ANSWER</Text>
-                <Text fontSize="sm" color={colors.textPrimary} lineHeight="1.6">{q.modelAnswer}</Text>
-              </Box>
+              {q.modelAnswer && (
+                <Box bg="#0d1a0d" border="1px solid #1a3a1a" borderRadius="lg" p={3} mb={3}>
+                  <Text fontSize="9px" color="#2cb67d" mb={1}>MODEL ANSWER</Text>
+                  <Text fontSize="sm" color={colors.textPrimary} lineHeight="1.6">{q.modelAnswer}</Text>
+                </Box>
+              )}
               <SelfGradeButtons
                 value={grades[i]}
                 onChange={v => setGrades(prev => prev.map((g, idx) => idx === i ? v : g))}
@@ -182,7 +118,7 @@ const ScoreAnalysis = () => {
           </Box>
 
           <Flex gap={3}>
-            <Box as="button" onClick={reset} flex={1} bg="transparent" border={`1px solid ${colors.border}`} borderRadius="lg" py={3} fontSize="sm" color={colors.textMuted} cursor="pointer" _hover={{ borderColor: colors.accent }}>
+            <Box as="button" onClick={nextScore} flex={1} bg="transparent" border={`1px solid ${colors.border}`} borderRadius="lg" py={3} fontSize="sm" color={colors.textMuted} cursor="pointer" _hover={{ borderColor: colors.accent }}>
               Practice another score
             </Box>
             <Box as="button" onClick={() => navigate('/study/exam')} flex={1} bg={colors.accent} color={colors.pageBg} border="none" borderRadius="lg" py={3} fontSize="sm" fontWeight="700" cursor="pointer" _hover={{ bg: colors.accentSoft }}>

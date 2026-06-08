@@ -1,17 +1,15 @@
-import { Box, Text } from '@chakra-ui/react'
+import { Box } from '@chakra-ui/react'
 import { colors } from '../../../Theme'
 
 interface Props {
   pdfPath: string
-  startPage: number
-  measures: string
+  page: number
 }
 
-const PdfViewer = ({ pdfPath, startPage, measures }: Props) => (
+const PdfViewer = ({ pdfPath, page }: Props) => (
   <Box mb={4}>
-    <Text fontSize="xs" color={colors.textMuted} mb={2}>{measures}</Text>
     <iframe
-      src={`${pdfPath}#page=${startPage}`}
+      src={`${pdfPath}#page=${page}&toolbar=0&navpanes=0&scrollbar=0`}
       style={{ width: '100%', height: '70vh', border: 'none', borderRadius: '8px', background: colors.surface }}
       title="Score excerpt"
     />

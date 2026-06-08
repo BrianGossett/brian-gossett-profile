@@ -4,7 +4,7 @@ import { Box, Flex, Text, VStack } from '@chakra-ui/react'
 import PageContainer from '../../Components/Container'
 import { colors } from '../../Theme'
 import { ALL_TERMS, type Term } from '../../data/terms'
-import { ALL_SCORES, type ScoreExcerpt } from '../../data/scores'
+import { ALL_SCORES, type ScoreExcerpt, randomPage } from '../../data/scores'
 import { selectTermsForExam } from './examUtils'
 import SelfGradeButtons from './shared/SelfGradeButtons'
 import PdfViewer from './shared/PdfViewer'
@@ -47,6 +47,7 @@ const ExamSimulation = () => {
   const [gradeTermIdx, setGradeTermIdx] = useState(0)
 
   const [scores] = useState<ScoreExcerpt[]>(() => shuffle(ALL_SCORES).slice(0, 4))
+  const [scorePages] = useState<number[]>(() => scores.map(s => randomPage(s)))
   const [skippedScoreId, setSkippedScoreId] = useState<number | null>(null)
   const [scoreAnswers, setScoreAnswers] = useState<Record<number, string[]>>({})
   const [scoreGrades, setScoreGrades] = useState<Record<number, (1 | 2 | 3 | null)[]>>({})
@@ -314,7 +315,7 @@ const ExamSimulation = () => {
             </Box>
           ) : (
             <>
-              <PdfViewer pdfPath={score.pdfPath} startPage={score.startPage} measures={score.measures} />
+              <PdfViewer pdfPath={score.pdfPath} page={scorePages[scoreWritingIdx]} />
               <VStack gap={5} align="stretch" mt={4}>
                 {score.questions.map((q, i) => (
                   <Box key={i}>

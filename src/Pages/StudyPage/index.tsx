@@ -401,24 +401,26 @@ const StudyHub = () => {
             Start {MODES.find(m => m.key === selectedMode)?.name} — {selectedCat === 'all' ? 'All Terms' : selectedCat}
           </Box>
 
-          {/* Exam Prep CTA */}
-          <Box
-            as="button"
-            onClick={() => navigate('/study/exam')}
-            w="100%"
-            mt={3}
-            bg="transparent"
-            color={colors.accent}
-            border={`1px solid ${colors.accent}`}
-            borderRadius="lg"
-            py={3}
-            fontSize="sm"
-            fontWeight="700"
-            cursor="pointer"
-            _hover={{ bg: colors.accentDim }}
-          >
-            Exam Prep →
-          </Box>
+          {/* Exam Prep CTA — default deck only */}
+          {selectedDeckId === 'default' && (
+            <Box
+              as="button"
+              onClick={() => navigate('/study/exam')}
+              w="100%"
+              mt={3}
+              bg="transparent"
+              color={colors.accent}
+              border={`1px solid ${colors.accent}`}
+              borderRadius="lg"
+              py={3}
+              fontSize="sm"
+              fontWeight="700"
+              cursor="pointer"
+              _hover={{ bg: colors.accentDim }}
+            >
+              Exam Prep →
+            </Box>
+          )}
         </Box>
       </Flex>
 

@@ -4,7 +4,7 @@ import { Box, Flex, Text, VStack } from '@chakra-ui/react'
 import PageContainer from '../../Components/Container'
 import { colors } from '../../Theme'
 import { ALL_TERMS } from '../../data/terms'
-import { ALL_SCORES, sampleScoreQuestions } from '../../data/scores'
+import { ALL_SCORES, sampleScoreQuestions, randomPage } from '../../data/scores'
 import SelfGradeButtons from './shared/SelfGradeButtons'
 import PdfViewer from './shared/PdfViewer'
 import TermSidebar from './shared/TermSidebar'
@@ -29,6 +29,7 @@ const ComprehensiveQuiz = () => {
 
   const shuffledTerms = useMemo(() => shuffle([...ALL_TERMS]), [])
   const scoreQs = useMemo(() => sampleScoreQuestions(ALL_SCORES, 10), [])
+  const scorePages = useMemo(() => scoreQs.map(sq => randomPage(sq.score)), [scoreQs])
 
   const [currentTermIdx, setCurrentTermIdx] = useState(0)
   const [termAnswers, setTermAnswers] = useState<Record<number, string>>({})
@@ -183,7 +184,7 @@ const ComprehensiveQuiz = () => {
           <Text fontSize="sm" fontWeight="700" color={colors.textPrimary}>🏆 Part II — Score Analysis {scoreWritingIdx + 1}/{scoreQs.length}</Text>
         </Flex>
         <Box p={{ base: 4, md: 6 }} overflowY="auto">
-          <PdfViewer pdfPath={score.pdfPath} startPage={score.startPage} measures={score.measures} />
+          <PdfViewer pdfPath={score.pdfPath} page={scorePages[scoreWritingIdx]} />
           <Text fontSize="xs" textTransform="uppercase" letterSpacing="widest" color={colors.accent} fontWeight="700" mb={2} mt={4}>Analysis Question</Text>
           <Text fontSize="sm" color={colors.textPrimary} mb={3}>{question.prompt}</Text>
           <textarea
