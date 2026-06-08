@@ -16,17 +16,14 @@ const PdfViewer = ({ pdfPath, startPage, measures }: Props) => (
       title="Score excerpt"
     />
     <Box mt={1}>
-      <Text
-        as="a"
+      <a
         href={pdfPath}
         target="_blank"
         rel="noopener noreferrer"
-        fontSize="xs"
-        color={colors.accent}
-        textDecoration="underline"
+        style={{ fontSize: '12px', color: colors.accent, textDecoration: 'underline' }}
       >
         Open in new tab ↗
-      </Text>
+      </a>
     </Box>
   </Box>
 )

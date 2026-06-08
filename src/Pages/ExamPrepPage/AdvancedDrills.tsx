@@ -276,7 +276,7 @@ const AdvancedDrills = () => {
               {q.options!.map((opt, i) => {
                 const isSelected = selectedOptionId === opt.id
                 const isCorrect = opt.id === q.term.id
-                let borderColor = colors.border, bg = colors.surface, textColor: string = colors.textMuted
+                let borderColor: string = colors.border, bg: string = colors.surface, textColor: string = colors.textMuted
                 if (answered && isCorrect) { borderColor = '#2cb67d'; bg = '#0d2a1e'; textColor = colors.textPrimary }
                 else if (answered && isSelected && !isCorrect) { borderColor = '#ff6b6b'; bg = '#2a0d0d'; textColor = colors.textPrimary }
                 return (
@@ -354,7 +354,7 @@ const AdvancedDrills = () => {
               {q.allCategories!.map(cat => {
                 const isSelected = selectedCategory === cat
                 const isCorrect = cat === q.term.category
-                let borderColor = colors.border, bg = 'transparent', textColor: string = colors.textMuted
+                let borderColor: string = colors.border, bg: string = 'transparent', textColor: string = colors.textMuted
                 if (answered && isCorrect) { borderColor = '#2cb67d'; bg = '#0d2a1e'; textColor = colors.textPrimary }
                 else if (answered && isSelected && !isCorrect) { borderColor = '#ff6b6b'; bg = '#2a0d0d'; textColor = colors.textPrimary }
                 return (
