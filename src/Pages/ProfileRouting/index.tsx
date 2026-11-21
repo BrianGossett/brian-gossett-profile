@@ -12,6 +12,7 @@ import ExamSimulation from '../ExamPrepPage/ExamSimulation'
 import AdvancedDrills from '../ExamPrepPage/AdvancedDrills'
 import ComprehensiveQuiz from '../ExamPrepPage/ComprehensiveQuiz'
 import ScoreAnalysis from '../ExamPrepPage/ScoreAnalysis'
+import TodoPage from '../TodoPage'
 
 const ProfileRouting = () => {
   return (
@@ -29,6 +30,7 @@ const ProfileRouting = () => {
       <Route path="/study/exam/drills" element={<AdvancedDrills />} />
       <Route path="/study/exam/comprehensive" element={<ComprehensiveQuiz />} />
       <Route path="/study/exam/scores" element={<ScoreAnalysis />} />
+      <Route path="/todo" element={<TodoPage />} />
       <Route path="*" element={<div style={{ justifyContent: 'center', display: 'flex', alignItems: 'center', width: '100vw', height: '100vh' }}>404 Not Found</div>} />
     </Routes>
   )
