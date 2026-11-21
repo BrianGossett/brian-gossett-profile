@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import type { APIGatewayProxyEventV2WithJWTAuthorizer } from 'aws-lambda'
 import { getClaims, type Claims } from './auth'
 import type { Db } from './db'
@@ -12,6 +13,8 @@ export interface Context {
   event: APIGatewayProxyEventV2WithJWTAuthorizer
   db: Db
   now: () => Date
+  /** A new unique ID. */
+  newId: () => string
 }
 
 export type Handler = (ctx: Context) => Promise<Response>
@@ -36,7 +39,7 @@ function match(pattern: string, path: string): Record<string, string> | undefine
   return params
 }
 
-export function createRouter(routes: Route[], deps: { db: Db; now?: () => Date }) {
+export function createRouter(routes: Route[], deps: { db: Db; now?: () => Date; newId?: () => string }) {
   return async (event: APIGatewayProxyEventV2WithJWTAuthorizer): Promise<Response> => {
     try {
       // Identity first: nothing runs for a request without a verified token.
@@ -54,6 +57,7 @@ export function createRouter(routes: Route[], deps: { db: Db; now?: () => Date }
           event,
           db: deps.db,
           now: deps.now ?? (() => new Date()),
+          newId: deps.newId ?? (() => randomUUID()),
         })
       }
       return json(404, { message: `No route for ${method} ${path}` })

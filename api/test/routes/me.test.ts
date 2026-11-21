@@ -18,6 +18,9 @@ describe('GET /me', () => {
       email: 'a@example.com',
       name: 'Ada',
       picture: null,
+      points: 0,
+      timezone: 'America/Chicago',
+      householdId: 'user-1',
       createdAt: '2026-11-21T12:00:00.000Z',
     })
     expect(db.items.get('USER#user-1|PROFILE')).toMatchObject({ PK: 'USER#user-1', SK: 'PROFILE' })
@@ -66,5 +69,26 @@ describe('GET /me', () => {
     }
     const res = await router(makeEvent('GET', '/me'))
     expect(body(res)).toMatchObject({ email: 'winner@example.com', createdAt: '2026-01-01T00:00:00.000Z' })
+  })
+})
+
+describe('PATCH /me', () => {
+  it('changes the timezone', async () => {
+    const { db, router } = setup()
+    const res = await router(makeEvent('PATCH', '/me', { body: { timezone: 'Europe/London' } }))
+    expect(res.statusCode).toBe(200)
+    expect(body(res).timezone).toBe('Europe/London')
+    expect(db.items.get('USER#user-1|PROFILE')).toMatchObject({ timezone: 'Europe/London', email: 'a@example.com' })
+  })
+
+  it('rejects a timezone that does not exist', async () => {
+    const { router } = setup()
+    expect((await router(makeEvent('PATCH', '/me', { body: { timezone: 'Mars/Olympus' } }))).statusCode).toBe(400)
+  })
+
+  it('cannot be used to set points or another field', async () => {
+    const { db, router } = setup()
+    await router(makeEvent('PATCH', '/me', { body: { timezone: 'UTC', points: 9999, householdId: 'someone-else' } }))
+    expect(db.items.get('USER#user-1|PROFILE')).toMatchObject({ points: 0, householdId: 'user-1' })
   })
 })

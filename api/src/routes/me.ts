@@ -1,33 +1,23 @@
-import { userKey, type Item } from '../db'
-import { json } from '../http'
+import { isValidTimezone } from '../dates'
+import { userKey } from '../db'
+import { HttpError, json, parseBody } from '../http'
+import { loadProfile } from '../profile'
 import type { Handler, Route } from '../router'
 
-const toProfile = (userId: string, item: Item) => ({
-  userId,
-  email: item.email ?? null,
-  name: item.name ?? null,
-  picture: item.picture ?? null,
-  createdAt: item.createdAt,
-})
-
 /** Returns the caller's profile, creating it from the token's claims on first call. */
-const getMe: Handler = async ({ userId, claims, db, now }) => {
-  const pk = userKey(userId)
-  const existing = await db.get(pk, 'PROFILE')
-  if (existing) return json(200, toProfile(userId, existing))
+const getMe: Handler = async ctx => json(200, await loadProfile(ctx))
 
-  const item: Item = {
-    PK: pk,
-    SK: 'PROFILE',
-    email: claims.email,
-    name: claims.name,
-    picture: claims.picture,
-    createdAt: now().toISOString(),
-  }
-  // Two first calls can race; the loser reads what the winner wrote.
-  const created = await db.putIfAbsent(item)
-  const profile = created ? item : (await db.get(pk, 'PROFILE')) ?? item
-  return json(200, toProfile(userId, profile))
+/** Changes the caller's timezone, the only profile setting they can edit. */
+const patchMe: Handler = async ctx => {
+  const { timezone } = parseBody(ctx.event)
+  if (!isValidTimezone(timezone)) throw new HttpError(400, 'timezone must be a valid IANA timezone, like America/Chicago')
+  const profile = await loadProfile(ctx)
+  const item = await ctx.db.get(userKey(ctx.userId), 'PROFILE')
+  await ctx.db.put({ ...item!, timezone })
+  return json(200, { ...profile, timezone })
 }
 
-export const meRoutes: Route[] = [{ method: 'GET', path: '/me', handler: getMe }]
+export const meRoutes: Route[] = [
+  { method: 'GET', path: '/me', handler: getMe },
+  { method: 'PATCH', path: '/me', handler: patchMe },
+]
