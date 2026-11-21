@@ -11,6 +11,7 @@ AWS CDK (TypeScript) for the backend that sits beside the React app. The site it
 | Stack | What it holds |
 |---|---|
 | `ProfileData` | The DynamoDB table (`lib/data-stack.ts`) |
+| `ProfileAuth` | The Cognito user pool, Google sign-in, hosted sign-in domain and web client (`lib/auth-stack.ts`) |
 
 Commands, from `infra/` with the project's Node (`nvm use`):
 
@@ -55,6 +56,28 @@ A household's items share the partition key `HH#<householdId>`:
 | `SCHED#…` | A schedule |
 
 What goes after each `#`, each item's attributes, and what `GSI1PK`/`GSI1SK` hold are decided by the API tickets (4–6) and should be added here as they are built.
+
+## Auth: Cognito with Google sign-in
+
+- One user pool on the Lite plan (the cheapest; Cognito's free allowance covers a personal app)
+- **Google is the only way to sign in.** No passwords and no self sign-up. Anyone with a Google account who signs in gets a user in the pool; restricting it to specific people would need a pre-sign-up check (not built)
+- Hosted sign-in domain: `https://briangossett.auth.us-east-2.amazoncognito.com`
+- One web client: authorization code flow, no client secret. The browser app must use PKCE (Cognito accepts PKCE from a public client but cannot be set to require it)
+- Sign-in and sign-out return to `/todo` on each origin in `siteOrigins` (`bin/app.ts`): `briangossett.org`, `www.briangossett.org`, the Amplify address, and `http://localhost:5173`
+- The user pool is retained if the stack is deleted
+
+### One-time setup before the first deploy
+
+1. In Google Cloud Console, create an OAuth client of type **Web application** with:
+   - Authorized redirect URI: `https://briangossett.auth.us-east-2.amazoncognito.com/oauth2/idpresponse`
+   - Authorized JavaScript origin: `https://briangossett.auth.us-east-2.amazoncognito.com`
+2. In AWS Secrets Manager (us-east-2), create a secret named `profile/google-oauth` whose value is this JSON:
+   ```json
+   { "clientId": "<Google client ID>", "clientSecret": "<Google client secret>" }
+   ```
+   The stack reads both values at deploy time; they are never written to the template or the repo. One secret costs about $0.40 a month.
+
+The stack's outputs (`UserPoolId`, `UserPoolClientId`, `HostedUiDomain`, `GoogleRedirectUri`) are what the app's environment variables are filled from (Ticket 13).
 
 ## Hosting (AWS Amplify)
 

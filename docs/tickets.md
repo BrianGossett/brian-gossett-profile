@@ -320,7 +320,9 @@ Hypothesis, not confirmed: `modelAnswer` is optional in `src/data/scores.ts` (70
 
 The Exam Prep PDF viewer loads scores from `/scores/<file>.pdf` (`pdfPath` in `src/data/scores.ts`), but `public/scores/` (78 PDFs, about 874 MB) is in `.gitignore`, so Amplify never receives the files and the viewer likely fails on the live site.
 
-**Open — check in before building:** where the PDFs should live. Hosting stays on Amplify and the to-do plan rules out creating S3 or CloudFront for the site, and 874 MB should not be committed to git. The user must choose an approach (for example: confirm that a storage bucket just for the PDFs is acceptable, shrink/trim the PDFs to the pages actually used, or keep Score Analysis local-only and hide it in production). First confirm on `https://briangossett.org/study/exam/scores` that the PDFs really are missing.
+**Decided 2026-11-21:** an S3 bucket for the PDFs is acceptable, and cost should be kept down. Still open: whether the PDFs are public or only for signed-in users (short-lived links from the API). Add the bucket to the existing CDK app in `infra/`, not Amplify Storage (which would add a second backend toolchain and its own Cognito resources).
+
+**Original open question:** where the PDFs should live. Hosting stays on Amplify and the to-do plan rules out creating S3 or CloudFront for the site, and 874 MB should not be committed to git. The user must choose an approach (for example: confirm that a storage bucket just for the PDFs is acceptable, shrink/trim the PDFs to the pages actually used, or keep Score Analysis local-only and hide it in production). First confirm on `https://briangossett.org/study/exam/scores` that the PDFs really are missing.
 
 Files: `src/data/scores.ts`, `src/Pages/ExamPrepPage/shared/PdfViewer.tsx`, `.gitignore`.
 
