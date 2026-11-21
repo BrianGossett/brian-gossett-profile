@@ -1,31 +1,14 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useSyncExternalStore } from 'react'
 import { ALL_TERMS, type Term } from '../data/terms'
+import { readDecks, subscribeDecks, writeDecks, type Deck } from './deckStore'
+import { deckSync, type SyncStatus } from './deckSync'
 
-const DECKS_KEY = 'study-custom-decks'
-
-export interface Deck {
-  id: string
-  name: string
-  terms: Term[]
-}
+export type { Deck }
 
 export const DEFAULT_DECK: Deck = {
   id: 'default',
   name: 'Music Theory',
   terms: ALL_TERMS,
-}
-
-function loadCustomDecks(): Deck[] {
-  try {
-    const raw = localStorage.getItem(DECKS_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
-}
-
-function saveCustomDecks(decks: Deck[]): void {
-  localStorage.setItem(DECKS_KEY, JSON.stringify(decks))
 }
 
 export function filterByCategory(terms: Term[], category: string): Term[] {
@@ -38,46 +21,41 @@ export function getDeckCategories(terms: Term[]): string[] {
 }
 
 export function useDecks() {
-  const [customDecks, setCustomDecks] = useState<Deck[]>(loadCustomDecks)
+  const customDecks = useSyncExternalStore(subscribeDecks, readDecks)
 
+  // Each change is written to this browser first, so these stay synchronous,
+  // and then sent to the account in the background when someone is signed in.
   const createDeck = useCallback((name: string, terms: Term[]): Deck => {
     const deck: Deck = { id: crypto.randomUUID(), name, terms }
-    setCustomDecks(prev => {
-      const next = [...prev, deck]
-      saveCustomDecks(next)
-      return next
-    })
+    writeDecks([...readDecks(), deck])
+    deckSync.put(deck)
     return deck
   }, [])
 
   const updateDeck = useCallback((id: string, name: string, terms: Term[]): void => {
-    setCustomDecks(prev => {
-      const next = prev.map(d => d.id === id ? { ...d, name, terms } : d)
-      saveCustomDecks(next)
-      return next
-    })
+    const next = readDecks().map(d => d.id === id ? { ...d, name, terms } : d)
+    writeDecks(next)
+    const updated = next.find(d => d.id === id)
+    if (updated) deckSync.put(updated)
   }, [])
 
   const deleteDeck = useCallback((id: string): void => {
-    setCustomDecks(prev => {
-      const next = prev.filter(d => d.id !== id)
-      saveCustomDecks(next)
-      return next
-    })
+    writeDecks(readDecks().filter(d => d.id !== id))
+    deckSync.remove(id)
   }, [])
 
   return { customDecks, createDeck, updateDeck, deleteDeck }
 }
 
 export function useDeckById(deckId: string): Deck {
-  return useMemo(() => {
-    if (deckId === 'default') return DEFAULT_DECK
-    try {
-      const raw = localStorage.getItem(DECKS_KEY)
-      const decks: Deck[] = raw ? JSON.parse(raw) : []
-      return decks.find(d => d.id === deckId) ?? DEFAULT_DECK
-    } catch {
-      return DEFAULT_DECK
-    }
-  }, [deckId])
+  const decks = useSyncExternalStore(subscribeDecks, readDecks)
+  return useMemo(
+    () => (deckId === 'default' ? DEFAULT_DECK : decks.find(d => d.id === deckId) ?? DEFAULT_DECK),
+    [deckId, decks],
+  )
+}
+
+/** Where loading the signed-in user's decks from their account has got to. */
+export function useDeckSyncStatus(): SyncStatus {
+  return useSyncExternalStore(deckSync.subscribe, deckSync.getStatus)
 }

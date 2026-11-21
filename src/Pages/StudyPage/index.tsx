@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router'
 import PageContainer from '../../Components/Container'
 import { colors } from '../../Theme'
 import { useDecks, getDeckCategories, filterByCategory, DEFAULT_DECK, type Deck } from '../../hooks/useDecks'
+import { deckSync } from '../../hooks/deckSync'
 import { useStudySession } from '../../hooks/useStudySession'
 import { decodeShareLink, encodeShareLink } from '../../utils/shareLink'
 import DeckModal from './DeckModal'
@@ -48,6 +49,19 @@ const StudyHub = () => {
     if (!clean.searchParams.has('deck')) return
     clean.searchParams.delete('deck')
     window.history.replaceState({}, '', clean.toString())
+  }, [])
+
+  // Tell the user when decks made while signed out were saved to their account.
+  useEffect(() => {
+    const check = () => {
+      const count = deckSync.takeImportedCount()
+      if (count === 0) return
+      setToast(`${count} ${count === 1 ? 'deck' : 'decks'} saved to your account`)
+      setTimeout(() => setToast(null), 2500)
+    }
+    const unsubscribe = deckSync.subscribe(check)
+    queueMicrotask(check)
+    return unsubscribe
   }, [])
 
   function showToast(msg: string) {
