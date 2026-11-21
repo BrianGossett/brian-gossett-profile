@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc --noEmit",
     "synth": "cdk synth",
-    "cdk": "cdk"
+    "cdk": "cdk",
+    "test": "vitest"
   },
   "dependencies": {
     "aws-cdk-lib": "^2.278.0",
@@ -17,6 +18,7 @@
     "aws-cdk": "^2.1149.0",
     "esbuild": "^0.28.2",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.1"
   }
 }
