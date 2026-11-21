@@ -358,3 +358,114 @@ Fix it properly (stable handlers or correct dependencies) rather than silencing 
 - `npm run lint` reports 0 errors and 0 warnings
 - Keyboard shortcuts in Multiple Choice pick an answer and advance on the current question, verified in the browser across several questions
 - A test covers answering and advancing by keyboard for at least two questions in a row
+
+---
+
+## Ticket 18 — Learn mode for flashcard decks
+
+A new study mode that takes a deck from unknown to learned in short rounds, modelled on how Quizlet's Learn works (reviewed 2026-11-21). Build our own wording, design and code; do not copy Quizlet's text, artwork or branding.
+
+How it works:
+- The deck (filtered by the selected category) is worked through in **rounds of 7 terms**
+- Each term must be answered correctly **twice** to count as learned: first as **multiple choice**, then as a **typed answer**. A term that has passed multiple choice moves to typed answers in a later round
+- A **correct** answer shows brief positive feedback and moves on by itself
+- A **wrong** answer shows the correct answer and waits for the user to continue. The question **comes back later in the same round**, marked as a retry, with its options reshuffled. A wrong answer does not move the term forward
+- A "Don't know" control counts as a wrong answer
+- Each round ends with a **recap**: the terms covered in the round and overall progress (correct answers out of terms × 2)
+- When every term is learned, show a finish screen with an option to start over
+- Number keys choose a multiple-choice option; Enter submits and continues
+
+Reuse what exists: distractors from `getDistractors` in `MultipleChoiceMode.tsx` (same category first), answer checking from `TypeInMode.tsx` (ignores case and punctuation). Move both into shared utilities rather than copying them.
+
+Progress is per deck (Ticket 10): store each term's stage (0, 1 or 2 correct) in the deck's progress so Learn resumes where it stopped and syncs to the account. A term that reaches 2 is also marked mastered; a wrong answer is also recorded as missed, so the other modes and the Study page stats agree.
+
+Route `/study/:deckId/learn`, inside `DeckGate`. Add Learn to the mode list on the Study page.
+
+Files: `src/Pages/StudyPage/LearnMode.tsx`, `src/Pages/StudyPage/index.tsx`, `src/Pages/ProfileRouting/index.tsx`, `src/hooks/progressStore.ts`, `src/hooks/useStudySession.ts`, a pure `src/utils/learn.ts` for the round logic, tests in `src/test/`.
+
+**Acceptance criteria:**
+- Learn appears on the Study page and opens at `/study/<deckId>/learn`
+- A round contains at most 7 terms, and a term's first question is multiple choice and its second is typed
+- A wrong answer shows the correct answer, waits for the user, and the same term is asked again before the round ends
+- A term counts as learned only after two correct answers, and overall progress reads as correct answers out of terms × 2
+- Each round ends with a recap of its terms; finishing the deck shows a finish screen
+- Leaving and reopening Learn resumes from the saved stages, and when signed in the stages are saved to the account
+- A deck with fewer than 4 terms still works (fewer options, no crash)
+- The round logic is covered by unit tests, and the mode by a component test
+
+---
+
+## Ticket 19 — Test mode with mixed question types and a results review
+
+A practice test for a deck, modelled on how Quizlet's Test works (reviewed 2026-11-21). Our own wording, design and code.
+
+- **Setup screen:** number of questions (up to the number of terms in the selected category), whether to answer with the term or the definition, and which question types to include: true/false, multiple choice, matching, written. At least one type must be on
+- **The test is one scrolling page**, questions grouped by type in that order, each numbered "n of total"
+  - True/false: a definition paired with a term that is either its own or another's
+  - Multiple choice: four options, distractors from the same category first
+  - Matching: a small group of terms and definitions to pair up
+  - Written: a text box, checked the same way as Type the Term
+- Every question can be left blank. Submitting with blanks asks whether to review the skipped questions or submit anyway
+- **Results page:** score as a percentage, time taken, counts of correct and incorrect, a list of question numbers marked right or wrong that jumps to each question, and every question shown again with the user's answer and the correct answer
+- "Take a new test" returns to setup with the same settings
+
+Wrong answers are recorded as missed and correct ones as mastered in the deck's progress, the same as the other modes.
+
+The existing Multiple Choice mode stays as it is.
+
+Route `/study/:deckId/test`, inside `DeckGate`. Add Test to the mode list on the Study page.
+
+Files: `src/Pages/StudyPage/TestMode.tsx`, a pure `src/utils/testBuilder.ts` for generating and grading questions, `src/Pages/StudyPage/index.tsx`, `src/Pages/ProfileRouting/index.tsx`, tests in `src/test/`.
+
+**Acceptance criteria:**
+- Test appears on the Study page and opens at `/study/<deckId>/test` on a setup screen
+- The setup screen refuses to start with no question type selected, and limits the question count to the terms available
+- A test with all four types on contains each type, grouped in order, with no term used twice
+- Submitting with unanswered questions asks before grading
+- The results page shows the score, time, and each question with the user's answer and the correct answer
+- True/false statements are true about half the time, and a false statement never pairs a term with its own definition
+- Question generation and grading are covered by unit tests
+
+---
+
+## Ticket 20 — Flashcard options: front side, starred terms, and re-studying missed cards
+
+Three additions to Flashcards, from the comparison with Quizlet (2026-11-21):
+
+- **Choose the front side:** term first (today's behavior) or definition first
+- **Star terms:** a star on each card. A "starred only" option studies just those. Stars are per deck and saved with the deck's progress, so they sync to the account
+- **Re-study missed cards:** at the end of a pass, offer "Study the N cards you missed", which runs another pass over only those, repeating until none are missed
+
+Keep the existing keyboard shortcuts, and add one for starring.
+
+Files: `src/Pages/StudyPage/FlashcardMode.tsx`, `src/hooks/progressStore.ts` (starred term IDs), `src/hooks/useStudySession.ts`, tests in `src/test/`.
+
+**Acceptance criteria:**
+- The front side can be switched between term and definition, and the choice is remembered
+- A card can be starred and unstarred; stars persist per deck and survive a reload
+- "Starred only" studies only starred terms, and is unavailable when nothing is starred
+- After a pass with missed cards, the user can study just those cards, and the option disappears once none are missed
+- Existing flashcard behavior and shortcuts still work
+- A component test covers starring, the front-side option and the missed-cards pass
+
+---
+
+## Ticket 21 — Timer and best time for Matching
+
+Matching counts wrong attempts but isn't timed. Add, as in Quizlet's Match (reviewed 2026-11-21):
+
+- A running timer for each round, starting on the first tile clicked
+- A time penalty for each wrong match, shown as it's added
+- The round's final time on the round-complete screen
+- The best time for the deck, saved with the deck's progress, with a "new best" note when beaten
+
+**Open — check in before building:** how many seconds a wrong match adds, and whether the best time is per round of 8 or for a whole game.
+
+Files: `src/Pages/StudyPage/MatchingMode.tsx`, `src/hooks/progressStore.ts`, tests in `src/test/`.
+
+**Acceptance criteria:**
+- The timer starts on the first click, not on page load, and stops when the last pair is matched
+- A wrong match adds the agreed penalty and the added time is visible
+- The round-complete screen shows the time and the best time for the deck
+- The best time persists across reloads and syncs with the deck's progress
+- Timer and penalty logic are covered by unit tests
