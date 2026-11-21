@@ -6,17 +6,9 @@ import { colors } from "../../Theme"
 import { type Term } from "../../data/terms"
 import { useDeckById, filterByCategory } from "../../hooks/useDecks"
 import { useStudySession } from "../../hooks/useStudySession"
+import { shuffle } from "../../utils/studyQuestions"
 
 const ROUND_SIZE = 8
-
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
-}
 
 interface MatchItem {
   id: number

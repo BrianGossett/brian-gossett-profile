@@ -59,6 +59,7 @@ describe('progress helpers', () => {
       missedCounts: { 3: 4, 5: 2 },
       streak: 2,
       positions: { flashcards: 3, quiz: 1, type: 0, match: 0 },
+      learn: {},
     })
   })
 })

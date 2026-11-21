@@ -33,9 +33,10 @@ describe('useStudySession', () => {
       lastDeckId: 'default',
       termCounts: { quiz: 20, type: 20, match: 20 },
       positions: { flashcards: 0, quiz: 0, type: 0, match: 0 },
+      learn: {},
     })
     expect(Object.keys(result.current).sort()).toEqual([
-      'markMastered', 'markMissed', 'resetSession', 'session', 'setLastCategory', 'setLastDeckId',
+      'markMastered', 'markMissed', 'recordLearnAnswer', 'resetLearn', 'resetSession', 'session', 'setLastCategory', 'setLastDeckId',
       'setLastMode', 'setPosition', 'setTermCount', 'weakTerms',
     ])
   })
@@ -106,5 +107,32 @@ describe('useStudySession', () => {
     act(() => { a.result.current.setLastCategory('Scales') })
     const b = renderHook(() => useStudySession(), { wrapper: onDeck('deck-b') })
     expect(b.result.current.session).toMatchObject({ lastMode: 'quiz', lastCategory: 'Scales' })
+  })
+
+  it('Learn: two correct answers learn a term, and a learned term is mastered', () => {
+    const { result } = renderHook(() => useStudySession(), { wrapper: onDeck('deck-a') })
+    act(() => { result.current.recordLearnAnswer(1, true) })
+    expect(result.current.session).toMatchObject({ learn: { 1: 1 }, mastered: [], streak: 1 })
+    act(() => { result.current.recordLearnAnswer(1, true) })
+    expect(result.current.session).toMatchObject({ learn: { 1: 2 }, mastered: [1], streak: 2 })
+    act(() => { result.current.recordLearnAnswer(1, true) })
+    expect(result.current.session.learn).toEqual({ 1: 2 })
+  })
+
+  it('Learn: a wrong answer is a miss and does not move the term forward', () => {
+    const { result } = renderHook(() => useStudySession(), { wrapper: onDeck('deck-a') })
+    act(() => { result.current.recordLearnAnswer(1, true) })
+    act(() => { result.current.recordLearnAnswer(1, false) })
+    expect(result.current.session).toMatchObject({ learn: { 1: 1 }, missed: [1], missedCounts: { 1: 1 }, streak: 0 })
+    act(() => { result.current.recordLearnAnswer(1, true) })
+    expect(result.current.session).toMatchObject({ learn: { 1: 2 }, mastered: [1], missed: [] })
+  })
+
+  it('Learn: starting over clears the stages but keeps mastered marks', () => {
+    const { result } = renderHook(() => useStudySession(), { wrapper: onDeck('deck-a') })
+    act(() => { result.current.recordLearnAnswer(1, true) })
+    act(() => { result.current.recordLearnAnswer(1, true) })
+    act(() => { result.current.resetLearn() })
+    expect(result.current.session).toMatchObject({ learn: {}, mastered: [1] })
   })
 })

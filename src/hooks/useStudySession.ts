@@ -116,6 +116,37 @@ export function useStudySession() {
     })
   }, [])
 
+  /**
+   * Learn mode: records one answer. A correct answer moves the term a step towards
+   * learned (two steps), and a learned term is also mastered; a wrong answer is a miss.
+   */
+  const recordLearnAnswer = useCallback((id: number, correct: boolean) => {
+    updateProgress(prev => {
+      if (!correct) {
+        return {
+          ...prev,
+          missed: prev.missed.includes(id) ? prev.missed : [...prev.missed, id],
+          missedCounts: { ...prev.missedCounts, [id]: (prev.missedCounts[id] ?? 0) + 1 },
+          streak: 0,
+        }
+      }
+      const stage = Math.min(2, (prev.learn[id] ?? 0) + 1)
+      const learned = stage >= 2
+      return {
+        ...prev,
+        learn: { ...prev.learn, [id]: stage },
+        mastered: learned && !prev.mastered.includes(id) ? [...prev.mastered, id] : prev.mastered,
+        missed: learned ? prev.missed.filter(x => x !== id) : prev.missed,
+        streak: prev.streak + 1,
+      }
+    })
+  }, [updateProgress])
+
+  /** Learn mode: start the deck over. Mastered and missed marks are kept. */
+  const resetLearn = useCallback(() => {
+    updateProgress(prev => ({ ...prev, learn: {} }))
+  }, [updateProgress])
+
   /** Clears the current deck's progress. Preferences are kept. */
   const resetSession = useCallback(() => {
     updateProgress(() => ({ ...EMPTY_PROGRESS }))
@@ -139,6 +170,8 @@ export function useStudySession() {
     setLastDeckId,
     setTermCount,
     resetSession,
+    recordLearnAnswer,
+    resetLearn,
   }
 }
 

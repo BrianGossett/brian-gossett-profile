@@ -11,6 +11,7 @@ import DeckModal from './DeckModal'
 
 const MODES = [
   { key: 'flashcards', icon: '🃏', name: 'Flashcards',      desc: 'Flip & mark. Tracks mastered terms.' },
+  { key: 'learn',      icon: '🧠', name: 'Learn',           desc: 'Short rounds until every term sticks.' },
   { key: 'quiz',       icon: '🎯', name: 'Multiple Choice', desc: '4 options per question.' },
   { key: 'type',       icon: '🔤', name: 'Type the Term',   desc: 'See the definition, type the term.' },
   { key: 'match',      icon: '🔗', name: 'Matching',        desc: 'Match terms to definitions.' },

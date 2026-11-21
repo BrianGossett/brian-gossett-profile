@@ -9,6 +9,8 @@ export interface DeckProgress {
   /** Correct answers in a row. */
   streak: number
   positions: { flashcards: number; quiz: number; type: number; match: number }
+  /** Learn mode: correct answers so far (0 to 2) for each term ID. */
+  learn: Record<number, number>
 }
 
 export const PROGRESS_KEY = 'study-deck-progress'
@@ -19,6 +21,7 @@ export const EMPTY_PROGRESS: DeckProgress = Object.freeze({
   missedCounts: {},
   streak: 0,
   positions: { flashcards: 0, quiz: 0, type: 0, match: 0 },
+  learn: {},
 }) as DeckProgress
 
 type ProgressMap = Record<string, DeckProgress>
@@ -37,6 +40,8 @@ export function normalizeProgress(raw: unknown): DeckProgress {
   const positions = (p.positions ?? {}) as Partial<DeckProgress['positions']>
   const missedCounts: Record<number, number> = {}
   for (const [id, n] of Object.entries(p.missedCounts ?? {})) if (count(n) > 0) missedCounts[Number(id)] = count(n)
+  const learn: Record<number, number> = {}
+  for (const [id, n] of Object.entries(p.learn ?? {})) if (count(n) > 0) learn[Number(id)] = Math.min(2, count(n))
   return {
     mastered: numbers(p.mastered),
     missed: numbers(p.missed),
@@ -48,6 +53,7 @@ export function normalizeProgress(raw: unknown): DeckProgress {
       type: count(positions.type),
       match: count(positions.match),
     },
+    learn,
   }
 }
 
@@ -102,7 +108,8 @@ export function subscribeProgress(listener: () => void): () => void {
 
 /**
  * Combines progress made in two places without losing anything from either:
- * a term mastered in one is mastered, and miss counts take the higher number.
+ * a term mastered in one is mastered, and miss counts and Learn stages take the
+ * higher number.
  * Positions and the streak follow `preferred`.
  */
 export function mergeProgress(other: DeckProgress, preferred: DeckProgress): DeckProgress {
@@ -111,11 +118,14 @@ export function mergeProgress(other: DeckProgress, preferred: DeckProgress): Dec
   for (const [id, n] of Object.entries(preferred.missedCounts)) {
     missedCounts[Number(id)] = Math.max(missedCounts[Number(id)] ?? 0, n)
   }
+  const learn: Record<number, number> = { ...other.learn }
+  for (const [id, n] of Object.entries(preferred.learn)) learn[Number(id)] = Math.max(learn[Number(id)] ?? 0, n)
   return {
     mastered,
     missed: [...new Set([...other.missed, ...preferred.missed])].filter(id => !mastered.includes(id)),
     missedCounts,
     streak: preferred.streak,
     positions: preferred.positions,
+    learn,
   }
 }
