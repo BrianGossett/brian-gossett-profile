@@ -23,6 +23,20 @@ npx cdk deploy ProfileData --profile Gossett-Claude  # deploy
 scripts/deploy-auth.sh                               # deploy ProfileAuth (see Auth below)
 ```
 
+### Deployed values
+
+Deployed to us-east-2 on 2026-11-21. None of these are secret; the browser app needs them (Ticket 13 turns them into environment variables).
+
+| | |
+|---|---|
+| API URL | `https://crxtyxul9k.execute-api.us-east-2.amazonaws.com` |
+| Cognito user pool ID | `us-east-2_VW2SULktv` |
+| Cognito web client ID | `1ttktvjg759cklsk37cgn3g243` |
+| Hosted sign-in domain | `https://briangossett.auth.us-east-2.amazoncognito.com` |
+| Table name | `ProfileData-TableCD117FA1-SQQBF2JB6PJJ` |
+
+Checked after deploy: every route returns 401 with no token or a bad token; CORS preflights are answered for the site origins only; the hosted sign-in redirects to Google and rejects a redirect address that isn't registered. Still to check once the app can sign in (Ticket 7): `GET /me` with a real token.
+
 ## Data: one DynamoDB table
 
 - Keys: partition key `PK`, sort key `SK` (strings)
