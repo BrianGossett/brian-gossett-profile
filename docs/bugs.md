@@ -18,3 +18,14 @@ New entries are appended at the end of this file, each preceded by a `---` horiz
 ```
 
 `sync-tickets` replaces "GitHub issue: pending sync" with the real issue number the moment it creates that bug's issue.
+
+---
+
+## Bug 14 — Empty MODEL ANSWER box on questions without a model answer
+**Found:** 2026-11-21
+**Status:** Open
+**Description:** In Full Deck Exam and Exam Simulation, the grading screen shows an empty "MODEL ANSWER" box for score-analysis questions that have no model answer (all but the attribution question on each score).
+**Root cause (hypothesis):** `modelAnswer` is optional in `src/data/scores.ts`; `ComprehensiveQuiz.tsx` and `ExamSimulation.tsx` render the box unconditionally, unlike `ScoreAnalysis.tsx`, which guards it.
+**Root cause (confirmed):** <filled in when work-ticket closes it — may differ from the hypothesis>
+**Fix summary:** <filled in on close — what changed and where>
+**Ticket:** Bug 14 in docs/tickets.md · GitHub issue: pending sync
