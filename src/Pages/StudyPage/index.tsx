@@ -36,20 +36,18 @@ const StudyHub = () => {
   const [modalState, setModalState] = useState<{ open: boolean; deck: Deck | null }>({ open: false, deck: null })
   const [importError, setImportError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
-  const [sharePrompt, setSharePrompt] = useState<{ name: string; terms: Deck['terms'] } | null>(null)
+  const [sharePrompt, setSharePrompt] = useState<{ name: string; terms: Deck['terms'] } | null>(() => {
+    const encoded = new URLSearchParams(window.location.search).get('deck')
+    return encoded ? decodeShareLink(encoded) : null
+  })
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Detect incoming share link
+  // Incoming share link is read into sharePrompt above; strip it from the URL
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const encoded = params.get('deck')
-    if (encoded) {
-      const decoded = decodeShareLink(encoded)
-      if (decoded) setSharePrompt(decoded)
-      const clean = new URL(window.location.href)
-      clean.searchParams.delete('deck')
-      window.history.replaceState({}, '', clean.toString())
-    }
+    const clean = new URL(window.location.href)
+    if (!clean.searchParams.has('deck')) return
+    clean.searchParams.delete('deck')
+    window.history.replaceState({}, '', clean.toString())
   }, [])
 
   function showToast(msg: string) {

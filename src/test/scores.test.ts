@@ -19,8 +19,17 @@ describe('sampleScoreQuestions', () => {
     for (const item of result) {
       expect(item.score).toBeDefined()
       expect(item.question.prompt).toBeDefined()
-      expect(item.question.modelAnswer).toBeDefined()
       expect(typeof item.questionIndex).toBe('number')
+    }
+  })
+})
+
+describe('ALL_SCORES', () => {
+  // modelAnswer is optional on purpose: only the attribution question has one
+  it('every score has a model answer on its attribution question', () => {
+    for (const score of ALL_SCORES) {
+      const attribution = score.questions.find(q => q.prompt.startsWith('Identify the composer'))
+      expect(attribution?.modelAnswer, score.title).toBeTruthy()
     }
   })
 })

@@ -3,7 +3,7 @@ import { Box, Flex, Link, Text, VStack } from "@chakra-ui/react"
 import { NavLink } from "react-router"
 import { colors } from "../../Theme"
 
-const PageContainer: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
+const PageContainer: React.FC<React.PropsWithChildren> = ({ children }) => {
   return (
     <VStack minHeight="100vh" minWidth="100vw" align="stretch" bg={colors.pageBg}>
       <Header />
