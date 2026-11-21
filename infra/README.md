@@ -75,33 +75,11 @@ All three addresses returned 200 on 2026-11-21. The domain association reports `
 
 ### Build settings
 
-Set in the Amplify console (there is no `amplify.yml` in the repo). Updated 2026-11-21 to pick up the Node version from `.nvmrc`:
-
-```yaml
-version: 1
-frontend:
-  phases:
-    preBuild:
-      commands:
-        - if [ -f .nvmrc ]; then nvm install && nvm use; fi
-        - node -v
-        - npm -v
-        - npm ci --cache .npm --prefer-offline
-    build:
-      commands:
-        - npm run build
-  artifacts:
-    baseDirectory: dist
-    files:
-      - '**/*'
-  cache:
-    paths:
-      - .npm/**/*
-```
+The build spec is `amplify.yml` at the repo root, which overrides whatever is saved in the Amplify console. It switches to the Node version in `.nvmrc`, prints `node -v` and `npm -v`, then runs `npm ci` and `npm run build` and publishes `dist`.
 
 - Amplify builds its own `dist`; the `dist/` files committed in git are not used.
-- The app needs Node 22.12 or newer (Vite 8, Vitest 5); `.nvmrc` pins 26.13.1. The `if` keeps builds of commits without an `.nvmrc` working on the image's default Node.
-- **Not yet verified on Amplify:** no build has run since the edit. On the first build after `.nvmrc` reaches master, check the log for `v26.13.1` from `node -v`. If the build image can't run Node 26, change `.nvmrc` to the latest Node 22 or 24.
+- **Node is pinned to 24, not 26.** The app needs Node 22.12 or newer (Vite 8, Vitest 5). Node 26's official binary links `libatomic.so.1`, which the Amplify build image doesn't have, and the build doesn't run as root, so it can't be installed (`yum install` fails). Node 24 and 22 don't need it. Revisit when the Amplify image ships `libatomic` or a newer Node.
+- `--skip-default-packages` stops nvm reinstalling Amplify's global tools (Cypress, Hugo, the Amplify CLI…) for the new Node on every build.
 
 ### Rewrites and redirects
 
