@@ -1,4 +1,5 @@
 import { App } from 'aws-cdk-lib'
+import { ApiStack } from '../lib/api-stack'
 import { AuthStack } from '../lib/auth-stack'
 import { DataStack } from '../lib/data-stack'
 
@@ -15,12 +16,20 @@ const siteOrigins = [
   'http://localhost:5173',
 ]
 
-new DataStack(app, 'ProfileData', { env })
+const data = new DataStack(app, 'ProfileData', { env })
 
-new AuthStack(app, 'ProfileAuth', {
+const auth = new AuthStack(app, 'ProfileAuth', {
   env,
   domainPrefix: 'briangossett',
   googleSecretName: 'profile/google-oauth',
+  siteOrigins,
+})
+
+new ApiStack(app, 'ProfileApi', {
+  env,
+  table: data.table,
+  userPool: auth.userPool,
+  userPoolClient: auth.client,
   siteOrigins,
 })
 

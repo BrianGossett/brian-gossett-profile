@@ -12,6 +12,7 @@ AWS CDK (TypeScript) for the backend that sits beside the React app. The site it
 |---|---|
 | `ProfileData` | The DynamoDB table (`lib/data-stack.ts`) |
 | `ProfileAuth` | The Cognito user pool, Google sign-in, hosted sign-in domain and web client (`lib/auth-stack.ts`) |
+| `ProfileApi` | The HTTP API, its Cognito authorizer and the one Lambda (`lib/api-stack.ts`, code in `../api/`) |
 
 Commands, from `infra/` with the project's Node (`nvm use`):
 
@@ -78,6 +79,20 @@ What goes after each `#`, each item's attributes, and what `GSI1PK`/`GSI1SK` hol
    The stack reads both values at deploy time; they are never written to the template or the repo. One secret costs about $0.40 a month.
 
 The stack's outputs (`UserPoolId`, `UserPoolClientId`, `HostedUiDomain`, `GoogleRedirectUri`) are what the app's environment variables are filled from (Ticket 13).
+
+## API: one Lambda behind an HTTP API
+
+- One Node.js 22 Lambda (ARM, 256 MB), bundled from `api/src/handler.ts`. The AWS SDK is left out of the bundle because the Lambda runtime provides it
+- An HTTP API with a Cognito JWT authorizer on every route. A request with no valid token gets 401 from API Gateway and never reaches the Lambda
+- One catch-all route (`/{proxy+}`) sends every path to the Lambda, whose own router (`api/src/router.ts`) answers 404 for paths it doesn't know. To add an endpoint, add a route in `api/src/routes/` — no infrastructure change
+- **The user ID is always the token's `sub` claim** (`api/src/auth.ts`). Handlers get it as `ctx.userId`; nothing reads a user ID from the path, query or body
+- The app sends the Cognito **ID token** in the `Authorization` header (it carries the email and name that `GET /me` stores on first call)
+- CORS allows only the origins in `siteOrigins` (`bin/app.ts`)
+- The Lambda can read and write the table and nothing else. Its logs are deleted after a month
+
+| Route | What it does |
+|---|---|
+| `GET /me` | Returns the caller's profile (`USER#<userId>` / `PROFILE`), creating it from the token on first call |
 
 ## Hosting (AWS Amplify)
 
