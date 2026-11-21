@@ -26,6 +26,13 @@ interface MatchItem {
   wrongFlash: boolean
 }
 
+function buildRound(terms: Term[]): { terms: MatchItem[]; defs: MatchItem[] } {
+  return {
+    terms: shuffle(terms.map(t => ({ id: t.id, text: t.term, type: "term" as const, matched: false, wrongFlash: false }))),
+    defs:  shuffle(terms.map(t => ({ id: t.id, text: t.definition.slice(0, 120) + (t.definition.length > 120 ? "…" : ""), type: "def" as const, matched: false, wrongFlash: false }))),
+  }
+}
+
 const MatchingMode = () => {
   const navigate = useNavigate()
   const { session, markMastered, setPosition, setLastMode } = useStudySession()
@@ -53,21 +60,6 @@ const MatchingMode = () => {
   const [items, setItems] = useState<{ terms: MatchItem[]; defs: MatchItem[] }>(() => buildRound(roundTerms))
 
   const isFlashing = items.terms.some(t => t.wrongFlash) || items.defs.some(d => d.wrongFlash)
-
-  useEffect(() => {
-    setItems(buildRound(roundTerms))
-    setSelectedTerm(null)
-    setSelectedDef(null)
-    setWrongAttempts(0)
-    setRoundComplete(false)
-  }, [roundIndex]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  function buildRound(terms: Term[]): { terms: MatchItem[]; defs: MatchItem[] } {
-    return {
-      terms: shuffle(terms.map(t => ({ id: t.id, text: t.term, type: "term" as const, matched: false, wrongFlash: false }))),
-      defs:  shuffle(terms.map(t => ({ id: t.id, text: t.definition.slice(0, 120) + (t.definition.length > 120 ? "…" : ""), type: "def" as const, matched: false, wrongFlash: false }))),
-    }
-  }
 
   function selectTerm(id: number) {
     if (isFlashing || items.terms.find(t => t.id === id)?.matched) return
@@ -112,8 +104,14 @@ const MatchingMode = () => {
 
   function nextRound() {
     const next = roundIndex + 1
+    const start = next * ROUND_SIZE
     setRoundIndex(next)
     setPosition("match", next)
+    setItems(buildRound(shuffledAll.slice(start, start + ROUND_SIZE)))
+    setSelectedTerm(null)
+    setSelectedDef(null)
+    setWrongAttempts(0)
+    setRoundComplete(false)
   }
 
   const matched = items.terms.filter(t => t.matched).length

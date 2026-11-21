@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router'
 import { Box, Flex, Text, VStack } from '@chakra-ui/react'
 import PageContainer from '../../Components/Container'
@@ -54,10 +54,6 @@ const ExamSimulation = () => {
   const [scoreWritingIdx, setScoreWritingIdx] = useState(0)
   const [scoreGradingIdx, setScoreGradingIdx] = useState(0)
   const [scoreRevealed, setScoreRevealed] = useState(false)
-
-  const { formatted: timerDisplay, isExpired, isLow, start: startTimer } = useCountdown(
-    timerMinutes !== null ? timerMinutes * 60 : null
-  )
 
   const answeredTermIds = useMemo(
     () => new Set(Object.keys(termAnswers).map(Number).filter(id => termAnswers[id]?.trim())),
@@ -135,12 +131,15 @@ const ExamSimulation = () => {
     }
   }
 
-  useEffect(() => {
-    if (isExpired) {
-      if (phase === 'part1-writing') beginPart1Grading()
-      else if (phase === 'part2-writing') endPart2Writing()
-    }
-  }, [isExpired]) // eslint-disable-line react-hooks/exhaustive-deps
+  function handleTimerExpired() {
+    if (phase === 'part1-writing') beginPart1Grading()
+    else if (phase === 'part2-writing') endPart2Writing()
+  }
+
+  const { formatted: timerDisplay, isLow, start: startTimer } = useCountdown(
+    timerMinutes !== null ? timerMinutes * 60 : null,
+    handleTimerExpired,
+  )
 
   // ─── Config ───────────────────────────────────────────────────────────────
   if (phase === 'config') {
