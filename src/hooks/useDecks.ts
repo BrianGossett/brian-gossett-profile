@@ -2,6 +2,8 @@ import { useCallback, useMemo, useSyncExternalStore } from 'react'
 import { ALL_TERMS, type Term } from '../data/terms'
 import { readDecks, subscribeDecks, writeDecks, type Deck } from './deckStore'
 import { deckSync, type SyncStatus } from './deckSync'
+import { removeProgress } from './progressStore'
+import { progressSync } from './progressSync'
 
 export type { Deck }
 
@@ -42,6 +44,9 @@ export function useDecks() {
   const deleteDeck = useCallback((id: string): void => {
     writeDecks(readDecks().filter(d => d.id !== id))
     deckSync.remove(id)
+    // The deck's progress goes with it (the API deletes its copy along with the deck).
+    removeProgress(id)
+    progressSync.forget(id)
   }, [])
 
   return { customDecks, createDeck, updateDeck, deleteDeck }
