@@ -28,4 +28,4 @@ New entries are appended at the end of this file, each preceded by a `---` horiz
 **Root cause (hypothesis):** `modelAnswer` is optional in `src/data/scores.ts`; `ComprehensiveQuiz.tsx` and `ExamSimulation.tsx` render the box unconditionally, unlike `ScoreAnalysis.tsx`, which guards it.
 **Root cause (confirmed):** <filled in when work-ticket closes it — may differ from the hypothesis>
 **Fix summary:** <filled in on close — what changed and where>
-**Ticket:** Bug 14 in docs/tickets.md · GitHub issue: pending sync
+**Ticket:** Bug 14 in docs/tickets.md · GitHub issue: #22
