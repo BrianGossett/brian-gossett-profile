@@ -7,7 +7,6 @@ const template = Template.fromStack(
   new AuthStack(new App(), 'TestAuth', {
     env: { account: '111111111111', region: 'us-east-2' },
     domainPrefix: 'test-prefix',
-    googleSecretName: 'test/google',
     siteOrigins: ['https://example.org', 'http://localhost:5173'],
   }),
 )
@@ -33,13 +32,21 @@ describe('AuthStack', () => {
     expect(clientProps().SupportedIdentityProviders).toEqual(['Google'])
   })
 
-  it('reads the Google client ID and secret from Secrets Manager, not the template', () => {
-    const [idp] = Object.values(template.findResources('AWS::Cognito::UserPoolIdentityProvider'))
-    const details = JSON.stringify(idp.Properties.ProviderDetails)
-    expect(details).toContain('resolve:secretsmanager:')
-    expect(details).toContain('test/google')
-    expect(details).toContain('clientId')
-    expect(details).toContain('clientSecret')
+  it('takes the Google client ID and secret as deploy parameters, with the secret hidden', () => {
+    template.hasParameter('GoogleClientId', { Type: 'String' })
+    template.hasParameter('GoogleClientSecret', { Type: 'String', NoEcho: true })
+    template.hasResourceProperties('AWS::Cognito::UserPoolIdentityProvider', {
+      ProviderDetails: {
+        client_id: { Ref: 'GoogleClientId' },
+        client_secret: { Ref: 'GoogleClientSecret' },
+      },
+    })
+  })
+
+  it('rejects a client ID saved with quotes around it', () => {
+    const pattern = new RegExp(template.findParameters('GoogleClientId').GoogleClientId.AllowedPattern)
+    expect(pattern.test('123-abc.apps.googleusercontent.com')).toBe(true)
+    expect(pattern.test('"123-abc.apps.googleusercontent.com"')).toBe(false)
   })
 
   it('has a hosted sign-in domain', () => {

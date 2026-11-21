@@ -14,7 +14,6 @@ const data = new DataStack(app, 'TestData', { env })
 const auth = new AuthStack(app, 'TestAuth', {
   env,
   domainPrefix: 'test-prefix',
-  googleSecretName: 'test/google',
   siteOrigins,
 })
 const template = Template.fromStack(

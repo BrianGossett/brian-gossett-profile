@@ -1,4 +1,4 @@
-import { CfnOutput, SecretValue, Stack, type StackProps } from 'aws-cdk-lib'
+import { CfnOutput, CfnParameter, SecretValue, Stack, type StackProps } from 'aws-cdk-lib'
 import {
   FeaturePlan,
   OAuthScope,
@@ -13,11 +13,6 @@ import type { Construct } from 'constructs'
 export interface AuthStackProps extends StackProps {
   /** Prefix of the hosted sign-in domain: <prefix>.auth.<region>.amazoncognito.com */
   domainPrefix: string
-  /**
-   * Secrets Manager secret holding the Google OAuth client, as JSON:
-   * { "clientId": "...", "clientSecret": "..." }
-   */
-  googleSecretName: string
   /** Site origins that may start sign-in. Sign-in returns to <origin>/todo. */
   siteOrigins: string[]
 }
@@ -36,11 +31,23 @@ export class AuthStack extends Stack {
       featurePlan: FeaturePlan.LITE,
     })
 
+    // The Google OAuth client is passed in at deploy time (see scripts/deploy-auth.sh),
+    // so neither value is ever written to the template or the repo.
+    const googleClientId = new CfnParameter(this, 'GoogleClientId', {
+      description: 'Google OAuth client ID',
+      allowedPattern: '^[0-9A-Za-z_.-]+\\.apps\\.googleusercontent\\.com$',
+      constraintDescription: 'must be a Google client ID with no quotes or spaces',
+    })
+    const googleClientSecret = new CfnParameter(this, 'GoogleClientSecret', {
+      description: 'Google OAuth client secret',
+      noEcho: true,
+      minLength: 1,
+    })
+
     const google = new UserPoolIdentityProviderGoogle(this, 'Google', {
       userPool: this.userPool,
-      // Resolved by CloudFormation at deploy time; neither value is written to the template.
-      clientId: SecretValue.secretsManager(props.googleSecretName, { jsonField: 'clientId' }).unsafeUnwrap(),
-      clientSecretValue: SecretValue.secretsManager(props.googleSecretName, { jsonField: 'clientSecret' }),
+      clientId: googleClientId.valueAsString,
+      clientSecretValue: SecretValue.cfnParameter(googleClientSecret),
       scopes: ['openid', 'email', 'profile'],
       attributeMapping: {
         email: ProviderAttribute.GOOGLE_EMAIL,

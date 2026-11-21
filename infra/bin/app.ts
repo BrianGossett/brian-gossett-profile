@@ -21,7 +21,6 @@ const data = new DataStack(app, 'ProfileData', { env })
 const auth = new AuthStack(app, 'ProfileAuth', {
   env,
   domainPrefix: 'briangossett',
-  googleSecretName: 'profile/google-oauth',
   siteOrigins,
 })
 

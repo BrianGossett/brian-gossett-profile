@@ -20,6 +20,7 @@ Commands, from `infra/` with the project's Node (`nvm use`):
 npm test                                             # CDK assertion tests
 npx cdk diff ProfileData --profile Gossett-Claude    # what a deploy would change
 npx cdk deploy ProfileData --profile Gossett-Claude  # deploy
+scripts/deploy-auth.sh                               # deploy ProfileAuth (see Auth below)
 ```
 
 ## Data: one DynamoDB table
@@ -72,11 +73,22 @@ What goes after each `#`, each item's attributes, and what `GSI1PK`/`GSI1SK` hol
 1. In Google Cloud Console, create an OAuth client of type **Web application** with:
    - Authorized redirect URI: `https://briangossett.auth.us-east-2.amazoncognito.com/oauth2/idpresponse`
    - Authorized JavaScript origin: `https://briangossett.auth.us-east-2.amazoncognito.com`
-2. In AWS Secrets Manager (us-east-2), create a secret named `profile/google-oauth` whose value is this JSON:
-   ```json
-   { "clientId": "<Google client ID>", "clientSecret": "<Google client secret>" }
-   ```
-   The stack reads both values at deploy time; they are never written to the template or the repo. One secret costs about $0.40 a month.
+2. In the Amplify console, under Hosting > Secrets, add two secrets for **All branches**, pasting the bare values with no quotes:
+   - `client_id` — the Google client ID
+   - `client_secret` — the Google client secret
+
+   Amplify stores these as encrypted Parameter Store values (`/amplify/shared/d3ksz8q52usvuz/…`), which is free. Secrets Manager would cost about $0.40 a month per secret.
+
+### Deploying
+
+CloudFormation can't read encrypted Parameter Store values for Cognito, so the stack takes the Google client ID and secret as deploy parameters (the secret is `NoEcho`, so CloudFormation never shows it). `scripts/deploy-auth.sh` reads both from Parameter Store and passes them in:
+
+```bash
+scripts/deploy-auth.sh --check   # validate the stored values; deploys nothing
+scripts/deploy-auth.sh           # deploy ProfileAuth
+```
+
+Use the script for the first deploy and whenever the Google client changes. Any other deploy (including `cdk deploy ProfileApi`, which depends on this stack) reuses the values CloudFormation already has.
 
 The stack's outputs (`UserPoolId`, `UserPoolClientId`, `HostedUiDomain`, `GoogleRedirectUri`) are what the app's environment variables are filled from (Ticket 13).
 
