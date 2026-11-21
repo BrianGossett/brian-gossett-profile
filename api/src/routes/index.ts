@@ -1,12 +1,14 @@
 import type { Route } from '../router'
+import { deckRoutes } from './decks'
 import { goalRoutes } from './goals'
+import { importRoutes } from './import'
 import { meRoutes } from './me'
+import { progressRoutes } from './progress'
 import { rewardRoutes } from './rewards'
 import { scheduleRoutes } from './schedules'
 import { statsRoutes } from './stats'
 import { taskRoutes } from './tasks'
 
-// Ticket 6 adds the flashcard routes here.
 export const routes: Route[] = [
   ...meRoutes,
   ...goalRoutes,
@@ -14,4 +16,7 @@ export const routes: Route[] = [
   ...rewardRoutes,
   ...statsRoutes,
   ...scheduleRoutes,
+  ...deckRoutes,
+  ...progressRoutes,
+  ...importRoutes,
 ]

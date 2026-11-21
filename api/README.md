@@ -45,8 +45,14 @@ Agreed 2026-11-21. All of the math is in `src/points.ts`, as pure functions.
 | `POST /schedules` | Create from `{ name, items }` or from an example with `{ templateId }` |
 | `PUT /schedules/{id}`, `DELETE /schedules/{id}` | Edit or delete |
 | `POST /schedules/{id}/apply` | Create one daily per item in the schedule |
+| `GET /decks`, `GET /decks/{id}` | The caller's custom flashcard decks, as `{ id, name, terms }` |
+| `PUT /decks/{id}` | Create the deck or replace its name and terms. The app makes deck IDs itself |
+| `POST /decks` | Create, with an optional `id`. 409 if the ID is taken |
+| `DELETE /decks/{id}` | Delete the deck and its saved progress |
+| `GET /progress/{deckId}`, `PUT /progress/{deckId}` | Study progress for one deck, stored as one JSON object: `{ progress: {…} }`. Works for `default` too |
+| `POST /flashcards/import` | Store `{ decks: [...] }` keeping their IDs. Decks whose ID already exists are skipped, so repeating an import changes nothing |
 
-Task IDs start with `t_` and daily IDs with `d_`.
+Task IDs start with `t_` and daily IDs with `d_`. The built-in `default` deck lives in the app and is never stored; only its progress is.
 
 ## Items in the table
 
@@ -63,6 +69,8 @@ Under `USER#<userId>`:
 | `LEDGER#<date>#<time>#<id>` | Every change to the balance: `amount` and `reason` (`task`, `daily`, `streak-week`, `streak-month`, `redeem`) |
 | `REWARD#<id>` | A reward |
 | `REDEEM#<date>#<time>#<id>` | A redemption |
+| `DECK#<deckId>` | A custom flashcard deck (at most 2,000 terms and about 350 KB) |
+| `PROG#<deckId>` | Study progress for one deck |
 
 Under `HH#<householdId>`: `MEMBER#<userId>` and `SCHED#<id>`. Every user currently has a household of their own (`householdId` equals their user ID); schedule routes check membership before reading or writing.
 
