@@ -469,3 +469,84 @@ Files: `src/Pages/StudyPage/MatchingMode.tsx`, `src/hooks/progressStore.ts`, tes
 - The round-complete screen shows the time and the best time for the deck
 - The best time persists across reloads and syncs with the deck's progress
 - Timer and penalty logic are covered by unit tests
+
+---
+
+## Ticket 22 — Android app from the React app
+
+Package the site as an installable Android app, cheaply. Depends on Ticket 12 (the PWA: manifest, icons, service worker).
+
+Recommended approach: a **Trusted Web Activity**. It is a thin Android shell that opens the live site full-screen in Chrome's engine, so there is one codebase and every web deploy updates the app. Google's Bubblewrap tool (or PWABuilder) generates the Android project from the PWA manifest. Sign-in keeps working because the Cognito and Google pages open in the same browser engine. The alternative, Capacitor, bundles the site into a WebView; Google blocks its sign-in inside WebViews, so it would need extra native sign-in work.
+
+Work:
+- Generate the Android project from the manifest, with an app name, package ID, icons and splash screen
+- Publish `/.well-known/assetlinks.json` on `briangossett.org` with the signing key's fingerprint, so the app opens without a browser address bar. The Amplify rewrite rule (Ticket 13) must serve this file as a file, not `index.html`
+- Build a signed APK (for installing directly) and an AAB (for the Play Store)
+- Keep the signing key out of git; document where it is kept and how to rebuild
+
+**Open — check in before building:**
+- Install directly from an APK file (free), or publish on Google Play (a one-time developer registration fee, and a review process)?
+- The app name and package ID (for example `org.briangossett.app`)
+- Whether the app should open on `/todo` or the home page
+
+Files: a new `android/` folder (or a separate repo), `public/.well-known/assetlinks.json`, `infra/README.md` (build and signing notes).
+
+**Acceptance criteria:**
+- The user has chosen direct install or Google Play, and the app name and package ID
+- The app installs on an Android phone and opens the site full-screen, with no browser address bar
+- Signing in with Google works inside the app
+- `https://briangossett.org/.well-known/assetlinks.json` is served as JSON
+- The signing key is not in git, and the rebuild steps are documented
+
+---
+
+## Ticket 23 — Pokémon type matchups as a built-in deck
+
+Add the type-matchup questions from the owner's "Type Matchup Trainer" artifact as a second built-in flashcard deck, so every study mode can use them.
+
+- All 18 types, Gen 6 onward, from the trainer's chart
+- One card per type per question, where the answer isn't empty:
+  - What is X super effective against?
+  - Which types resist X attacks?
+  - What is X weak to?
+  - What does X resist?
+  - What is X immune to?
+- The question is the card's definition (what the modes show) and the list of types is its term (what the user answers). Categories are the five question kinds, so multiple-choice options are other lists of the same kind
+- Card IDs are fixed, so saved progress stays attached if the data is regenerated
+- **Typed answers that are lists** are checked as a set: every type, nothing extra, any order, separated by commas or spaces. A one-letter typo in a type name is forgiven
+- The deck is built in (not stored per user), listed on the Study page beside Music Theory, and can be duplicated like the default deck. Its progress saves per deck like any other
+
+Files: `src/data/pokemonTypes.ts`, `src/hooks/useDecks.ts` (built-in decks), `src/Pages/StudyPage/index.tsx`, `src/Pages/StudyPage/DeckGate.tsx`, `src/utils/studyQuestions.ts` (list answers), tests in `src/test/`.
+
+**Acceptance criteria:**
+- The deck appears on the Study page and opens in every study mode
+- The data matches the trainer's chart: spot checks for Fire, Ghost, Steel and Fairy, and no card has an empty answer
+- A typed list answer is correct in any order, wrong if a type is missing or extra, and tolerant of a one-letter typo
+- Single-term answers in other decks are checked exactly as before
+- The built-in deck is never sent to the API as a deck, and its progress still syncs
+- Unit tests cover the generated cards and the list-answer checking
+
+---
+
+## Ticket 24 — Learn mode: buckets, retype to continue, session size and trickiest cards
+
+Keep Learn's rules from Ticket 18 (rounds of 7, two correct answers per term, missed terms return in the same round) and add the best parts of the owner's "Type Matchup Trainer" Learn engine:
+
+- **Buckets:** show how many terms are Unstarted, Familiar (one correct answer) and Mastered (two), as counts and a three-colour bar, in place of the single progress bar
+- **Retype to continue:** after a wrong typed answer, show the correct answer and require the user to type it correctly before moving on
+- **Session size:** a short setup step offering 10, 20 or all of the terms not yet learned
+- **Misses in the recap:** each term in the round recap shows how many times it was missed in that round, or that it was clean
+- **Trickiest cards:** the finish screen lists the terms missed most, with their answers
+- **Live preview for list answers** (Ticket 23): as the user types, show which items were recognised
+
+**Open — check in before building:** whether a wrong typed answer should also drop the term back to multiple choice, as the trainer does. Ticket 18 keeps the term at its current stage.
+
+Files: `src/Pages/StudyPage/LearnMode.tsx`, `src/utils/learn.ts`, tests in `src/test/`.
+
+**Acceptance criteria:**
+- The bucket counts always add up to the number of terms in the session and match the saved stages
+- After a wrong typed answer the user cannot continue until the correct answer is typed
+- A session of 10 covers only 10 not-yet-learned terms; "all" covers every one
+- The round recap shows a miss count per term
+- The finish screen lists the most-missed terms, or says there were no misses
+- Unit tests cover the bucket counts, session selection and miss tracking; the component test covers retype-to-continue
