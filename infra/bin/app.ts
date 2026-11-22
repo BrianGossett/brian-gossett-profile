@@ -2,6 +2,7 @@ import { App } from 'aws-cdk-lib'
 import { ApiStack } from '../lib/api-stack'
 import { AuthStack } from '../lib/auth-stack'
 import { DataStack } from '../lib/data-stack'
+import { FilesStack } from '../lib/files-stack'
 
 const app = new App()
 
@@ -31,5 +32,8 @@ new ApiStack(app, 'ProfileApi', {
   userPoolClient: auth.client,
   siteOrigins,
 })
+
+// Score PDFs for Exam Prep. Independent of the other stacks.
+new FilesStack(app, 'ProfileFiles', { env })
 
 app.synth()
