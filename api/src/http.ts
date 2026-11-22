@@ -31,6 +31,12 @@ export function parseBody(event: Pick<APIGatewayProxyEventV2, 'body' | 'isBase64
   }
 }
 
+/** An optional line of text: null or '' clears it (returns undefined). */
+export function optionalText(value: unknown, field: string, max = 200): string | undefined {
+  if (value === null || (typeof value === 'string' && value.trim() === '')) return undefined
+  return requireText(value, field, max)
+}
+
 /** A trimmed, non-empty string no longer than `max`, or a 400. */
 export function requireText(value: unknown, field: string, max = 200): string {
   if (typeof value !== 'string' || value.trim() === '') throw new HttpError(400, `${field} is required`)

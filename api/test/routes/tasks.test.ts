@@ -164,8 +164,8 @@ describe('GET /today', () => {
     const { data: open } = await user.post('/tasks', { title: 'Open', size: 'medium' })
     const { data: old } = await user.post('/tasks', { title: 'Done earlier', size: 'small' })
     setDate(day(20))
-    await user.post(`/tasks/${daily.id}/complete`)
     await user.post(`/tasks/${old.id}/complete`)
+    await user.post(`/tasks/${daily.id}/complete`)
     setDate(day(21))
     await user.post(`/tasks/${daily.id}/complete`)
 
@@ -207,5 +207,106 @@ describe('keeping users apart', () => {
     const { as } = createApp()
     const { data: goal } = await as('alice').post('/goals', { name: 'Alice goal' })
     expect((await as('mallory').post('/tasks', { title: 'x', size: 'small', goalId: goal.id })).status).toBe(400)
+  })
+})
+
+describe('why lines', () => {
+  it('keeps an optional why on a task and a goal, and clears it with null', async () => {
+    const { user } = createApp()
+    const { data: goal } = await user.post('/goals', { name: 'Get fit', why: 'Keep up with the kids' })
+    expect(goal.why).toBe('Keep up with the kids')
+    expect((await user.patch(`/goals/${goal.id}`, { why: null })).data).toMatchObject({ name: 'Get fit', why: null })
+
+    const { data: task } = await user.post('/tasks', { title: 'Run', size: 'small', why: '  Feel better  ' })
+    expect(task.why).toBe('Feel better')
+    expect((await user.patch(`/tasks/${task.id}`, { why: '' })).data.why).toBeNull()
+    expect((await user.post('/tasks', { title: 'x', size: 'small' })).data.why).toBeNull()
+    expect((await user.post('/tasks', { title: 'x', size: 'small', why: 'y'.repeat(201) })).status).toBe(400)
+  })
+})
+
+describe('how a completion felt', () => {
+  it('saves a feel on today\'s completion and shows it in /today', async () => {
+    const { user } = createApp()
+    const { data: daily } = await user.post('/tasks', { title: 'Stretch', size: 'small', repeat: 'daily' })
+    expect((await user.post(`/tasks/${daily.id}/feel`, { feel: 'drained' })).status).toBe(409)
+    await user.post(`/tasks/${daily.id}/complete`)
+    expect((await user.post(`/tasks/${daily.id}/feel`, { feel: 'tired' })).status).toBe(400)
+    const res = await user.post(`/tasks/${daily.id}/feel`, { feel: 'drained' })
+    expect(res.data).toMatchObject({ id: daily.id, feel: 'drained' })
+    expect((await user.get('/today')).data.dailies[0].feel).toBe('drained')
+    await user.post(`/tasks/${daily.id}/feel`, { feel: null })
+    expect((await user.get('/today')).data.dailies[0].feel).toBeNull()
+    // It changes no points.
+    expect((await user.get('/me')).data.points).toBe(1)
+  })
+
+  it('counts feelings and the most draining tasks in the summary', async () => {
+    const { user, setDate } = createApp()
+    const { data: a } = await user.post('/tasks', { title: 'Inbox', size: 'small', repeat: 'daily' })
+    const { data: b } = await user.post('/tasks', { title: 'Walk', size: 'small', repeat: 'daily' })
+    for (const d of [16, 17]) {
+      setDate(day(d))
+      await user.post(`/tasks/${a.id}/complete`)
+      await user.post(`/tasks/${a.id}/feel`, { feel: 'drained' })
+      await user.post(`/tasks/${b.id}/complete`)
+      await user.post(`/tasks/${b.id}/feel`, { feel: 'energized' })
+    }
+    const { data } = await user.get('/summary', { period: 'week' })
+    expect(data.feelings).toEqual({ energized: 2, neutral: 0, drained: 2 })
+    expect(data.draining).toEqual([{ itemId: a.id, title: 'Inbox', count: 2 }])
+  })
+})
+
+describe('one more', () => {
+  const setup = async () => {
+    const app = createApp()
+    const { data: daily } = await app.user.post('/tasks', { title: 'Stretch', size: 'small', repeat: 'daily' })
+    const task = async (size = 'small') => (await app.user.post('/tasks', { title: 'Extra', size })).data.id as string
+    return { ...app, daily, task }
+  }
+
+  it('is not offered until every daily is done, or to someone with no dailies', async () => {
+    const { user, daily, task } = await setup()
+    expect((await user.get('/today')).data.oneMore).toEqual({ available: false })
+    const res = await user.post(`/tasks/${await task()}/complete`)
+    expect(res.data.awards).toEqual([{ reason: 'task', amount: 1 }])
+    await user.post(`/tasks/${daily.id}/complete`)
+    expect((await user.get('/today')).data.oneMore.available).toBe(true)
+
+    const other = createApp().user
+    expect((await other.post(`/tasks/${(await other.post('/tasks', { title: 'x', size: 'small' })).data.id}/complete`)).data.points).toBe(1)
+  })
+
+  it('adds the bonus to the next task once, then not again that day', async () => {
+    const { user, daily, task, setDate } = await setup()
+    await user.post(`/tasks/${daily.id}/complete`)
+    const first = await user.post(`/tasks/${await task('medium')}/complete`)
+    expect(first.data).toMatchObject({ points: 4, balance: 5, awards: [{ reason: 'task', amount: 2 }, { reason: 'one-more', amount: 2 }] })
+    expect((await user.get('/today')).data.oneMore.available).toBe(false)
+    expect((await user.post(`/tasks/${await task()}/complete`)).data.points).toBe(1)
+    const summary = (await user.get('/summary', { period: 'week' })).data
+    expect(summary).toMatchObject({ earned: 6, oneMoreBonuses: 2 })
+
+    // A new day offers it again once the daily is done.
+    setDate(day(22))
+    await user.post(`/tasks/${daily.id}/complete`)
+    expect((await user.post(`/tasks/${await task('large')}/complete`)).data.points).toBe(6)
+  })
+
+  it('still completes the task, without the bonus, when the bonus was just taken', async () => {
+    const { user, db, daily, task } = await setup()
+    await user.post(`/tasks/${daily.id}/complete`)
+    const id = await task()
+    // Another request claims the bonus between this one's check and its write.
+    const get = db.get.bind(db)
+    db.get = async (pk, sk) => {
+      const found = await get(pk, sk)
+      if (sk.startsWith('ONEMORE#') && !found) await db.put({ PK: pk, SK: sk })
+      return found
+    }
+    const res = await user.post(`/tasks/${id}/complete`)
+    expect(res.status).toBe(200)
+    expect(res.data.awards).toEqual([{ reason: 'task', amount: 1 }])
   })
 })

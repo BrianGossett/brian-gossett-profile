@@ -1,6 +1,7 @@
 import { addDays, isPeriod, periodRange } from '../dates'
 import { userKey } from '../db'
 import { HttpError, json } from '../http'
+import { FEELS, isFeel, type Feel } from '../points'
 import { loadProfile, today } from '../profile'
 import type { Context, Handler, Route } from '../router'
 
@@ -29,6 +30,18 @@ const getSummary: Handler = async ctx => {
     row.points += d.points as number
     byGoal.set(goalId, row)
   }
+  // How completions felt, and which tasks were most often draining.
+  const feelings = Object.fromEntries(FEELS.map(f => [f, 0])) as Record<Feel, number>
+  const drained = new Map<string, { itemId: string; title: string; count: number }>()
+  for (const d of done) {
+    if (!isFeel(d.feel)) continue
+    feelings[d.feel] += 1
+    if (d.feel !== 'drained') continue
+    const itemId = d.itemId as string
+    const row = drained.get(itemId) ?? { itemId, title: d.title as string, count: 0 }
+    row.count += 1
+    drained.set(itemId, row)
+  }
   const earnedBy = (reasons: string[]) =>
     ledger.filter(l => reasons.includes(l.reason as string)).reduce((sum, l) => sum + (l.amount as number), 0)
 
@@ -36,12 +49,15 @@ const getSummary: Handler = async ctx => {
     period,
     from,
     to,
-    earned: earnedBy(['task', 'daily', 'streak-week', 'streak-month']),
+    earned: earnedBy(['task', 'daily', 'streak-week', 'streak-month', 'one-more']),
     streakBonuses: earnedBy(['streak-week', 'streak-month']),
+    oneMoreBonuses: earnedBy(['one-more']),
     spent: redeemed.reduce((sum, r) => sum + (r.cost as number), 0),
     completions: done.length,
     redemptions: redeemed.length,
     byGoal: [...byGoal.values()],
+    feelings,
+    draining: [...drained.values()].sort((a, b) => b.count - a.count).slice(0, 5),
   })
 }
 
