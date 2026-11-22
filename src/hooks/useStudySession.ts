@@ -147,9 +147,29 @@ export function useStudySession() {
     updateProgress(prev => ({ ...prev, learn: {} }))
   }, [updateProgress])
 
-  /** Clears the current deck's progress. Preferences are kept. */
+  /** Stars or unstars a term in the current deck. */
+  const toggleStar = useCallback((id: number) => {
+    updateProgress(prev => ({
+      ...prev,
+      starred: prev.starred.includes(id) ? prev.starred.filter(x => x !== id) : [...prev.starred, id],
+    }))
+  }, [updateProgress])
+
+  /** Chooses which side flashcards show first for the current deck. */
+  const setFlashcardFront = useCallback((side: 'term' | 'definition') => {
+    updateProgress(prev => ({ ...prev, flashcardFront: side }))
+  }, [updateProgress])
+
+  /**
+   * Clears the current deck's progress. Preferences are kept, and so are the
+   * user's stars and flashcard side: those are choices, not results.
+   */
   const resetSession = useCallback(() => {
-    updateProgress(() => ({ ...EMPTY_PROGRESS }))
+    updateProgress(prev => ({
+      ...EMPTY_PROGRESS,
+      starred: prev.starred,
+      ...(prev.flashcardFront ? { flashcardFront: prev.flashcardFront } : {}),
+    }))
   }, [updateProgress])
 
   const session: StudySession = useMemo(() => ({ ...preferences, ...progress }), [preferences, progress])
@@ -172,6 +192,8 @@ export function useStudySession() {
     resetSession,
     recordLearnAnswer,
     resetLearn,
+    toggleStar,
+    setFlashcardFront,
   }
 }
 

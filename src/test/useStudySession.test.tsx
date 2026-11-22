@@ -34,10 +34,11 @@ describe('useStudySession', () => {
       termCounts: { quiz: 20, type: 20, match: 20 },
       positions: { flashcards: 0, quiz: 0, type: 0, match: 0 },
       learn: {},
+      starred: [],
     })
     expect(Object.keys(result.current).sort()).toEqual([
-      'markMastered', 'markMissed', 'recordLearnAnswer', 'resetLearn', 'resetSession', 'session', 'setLastCategory', 'setLastDeckId',
-      'setLastMode', 'setPosition', 'setTermCount', 'weakTerms',
+      'markMastered', 'markMissed', 'recordLearnAnswer', 'resetLearn', 'resetSession', 'session', 'setFlashcardFront', 'setLastCategory', 'setLastDeckId',
+      'setLastMode', 'setPosition', 'setTermCount', 'toggleStar', 'weakTerms',
     ])
   })
 
@@ -134,5 +135,37 @@ describe('useStudySession', () => {
     act(() => { result.current.recordLearnAnswer(1, true) })
     act(() => { result.current.resetLearn() })
     expect(result.current.session).toMatchObject({ learn: {}, mastered: [1] })
+  })
+
+  it('stars and unstars terms per deck', () => {
+    const a = renderHook(() => useStudySession(), { wrapper: onDeck('deck-a') })
+    const b = renderHook(() => useStudySession(), { wrapper: onDeck('deck-b') })
+    act(() => { a.result.current.toggleStar(3) })
+    act(() => { a.result.current.toggleStar(5) })
+    expect(a.result.current.session.starred).toEqual([3, 5])
+    expect(b.result.current.session.starred).toEqual([])
+    act(() => { a.result.current.toggleStar(3) })
+    expect(a.result.current.session.starred).toEqual([5])
+  })
+
+  it('remembers which side flashcards show first, per deck', () => {
+    const first = renderHook(() => useStudySession(), { wrapper: onDeck('deck-a') })
+    expect(first.result.current.session.flashcardFront).toBeUndefined()
+    act(() => { first.result.current.setFlashcardFront('definition') })
+    first.unmount()
+
+    const again = renderHook(() => useStudySession(), { wrapper: onDeck('deck-a') })
+    expect(again.result.current.session.flashcardFront).toBe('definition')
+    const other = renderHook(() => useStudySession(), { wrapper: onDeck('deck-b') })
+    expect(other.result.current.session.flashcardFront).toBeUndefined()
+  })
+
+  it('keeps stars and the flashcard side when progress is reset', () => {
+    const { result } = renderHook(() => useStudySession(), { wrapper: onDeck('deck-a') })
+    act(() => { result.current.toggleStar(1) })
+    act(() => { result.current.setFlashcardFront('definition') })
+    act(() => { result.current.markMastered(1) })
+    act(() => { result.current.resetSession() })
+    expect(result.current.session).toMatchObject({ mastered: [], streak: 0, starred: [1], flashcardFront: 'definition' })
   })
 })

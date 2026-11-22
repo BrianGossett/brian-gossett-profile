@@ -11,6 +11,10 @@ export interface DeckProgress {
   positions: { flashcards: number; quiz: number; type: number; match: number }
   /** Learn mode: correct answers so far (0 to 2) for each term ID. */
   learn: Record<number, number>
+  /** Terms the user has starred, to study on their own. */
+  starred: number[]
+  /** Which side flashcards show first, if the user has chosen. Otherwise the deck decides. */
+  flashcardFront?: 'term' | 'definition'
 }
 
 export const PROGRESS_KEY = 'study-deck-progress'
@@ -22,6 +26,7 @@ export const EMPTY_PROGRESS: DeckProgress = Object.freeze({
   streak: 0,
   positions: { flashcards: 0, quiz: 0, type: 0, match: 0 },
   learn: {},
+  starred: [],
 }) as DeckProgress
 
 type ProgressMap = Record<string, DeckProgress>
@@ -54,6 +59,8 @@ export function normalizeProgress(raw: unknown): DeckProgress {
       match: count(positions.match),
     },
     learn,
+    starred: [...new Set(numbers(p.starred))],
+    ...(p.flashcardFront === 'term' || p.flashcardFront === 'definition' ? { flashcardFront: p.flashcardFront } : {}),
   }
 }
 
@@ -108,8 +115,8 @@ export function subscribeProgress(listener: () => void): () => void {
 
 /**
  * Combines progress made in two places without losing anything from either:
- * a term mastered in one is mastered, and miss counts and Learn stages take the
- * higher number.
+ * a term mastered or starred in one is mastered or starred, and miss counts and
+ * Learn stages take the higher number.
  * Positions and the streak follow `preferred`.
  */
 export function mergeProgress(other: DeckProgress, preferred: DeckProgress): DeckProgress {
@@ -127,5 +134,7 @@ export function mergeProgress(other: DeckProgress, preferred: DeckProgress): Dec
     streak: preferred.streak,
     positions: preferred.positions,
     learn,
+    starred: [...new Set([...other.starred, ...preferred.starred])],
+    ...(preferred.flashcardFront ?? other.flashcardFront ? { flashcardFront: preferred.flashcardFront ?? other.flashcardFront } : {}),
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useEffectEvent, useState } from "react"
 import { Box, Flex, Text, VStack } from "@chakra-ui/react"
 import { useNavigate, useParams } from "react-router"
 import PageContainer from "../../Components/Container"
@@ -6,60 +6,83 @@ import { colors } from "../../Theme"
 import { type Term } from "../../data/terms"
 import { useDeckById, filterByCategory } from "../../hooks/useDecks"
 import { useStudySession } from "../../hooks/useStudySession"
+import { shuffle } from "../../utils/studyQuestions"
 
-function shuffleArray<T>(arr: T[]): T[] {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
-}
+/** What the current pass is over. Only a pass over the whole list saves its position. */
+type Pass = "all" | "starred" | "missed"
 
 const FlashcardMode = () => {
   const navigate = useNavigate()
-  const { session, markMastered, markMissed, setPosition, setLastMode } = useStudySession()
+  const { session, markMastered, markMissed, setPosition, setLastMode, toggleStar, setFlashcardFront } = useStudySession()
   const { deckId = 'default' } = useParams<{ deckId: string }>()
   const deck = useDeckById(deckId)
-  const questionFirst = deck.front === 'definition'
   const category = session.lastCategory ?? 'all'
-  const [terms, setTerms] = useState(() => filterByCategory(deck.terms, category))
+  const allTerms = filterByCategory(deck.terms, category)
+
+  // Question-and-answer decks hold the question in `definition`, so their sides are named differently.
+  const isQuestionDeck = deck.front === 'definition'
+  const sideName = (side: 'term' | 'definition') =>
+    isQuestionDeck ? (side === 'term' ? 'answer' : 'question') : side
+  // The user's choice for this deck wins; otherwise the deck decides, and plain decks show the term first.
+  const front: 'term' | 'definition' = session.flashcardFront ?? deck.front ?? 'term'
+  const back = front === 'term' ? 'definition' : 'term'
+
+  const [terms, setTerms] = useState(allTerms)
+  const [pass, setPass] = useState<Pass>("all")
   const savedPos = session.positions.flashcards
   const [index, setIndex] = useState(savedPos < terms.length ? savedPos : 0)
   const [flipped, setFlipped] = useState(false)
   const [gotIt, setGotIt] = useState<number>(session.mastered.length)
   const [missed, setMissed] = useState<number>(session.missed.length)
+  /** Cards marked "still learning" in this pass, in the order they came up. */
+  const [missedThisPass, setMissedThisPass] = useState<Term[]>([])
 
   useEffect(() => { setLastMode("flashcards") }, [setLastMode])
 
   const term: Term | undefined = terms[index]
+  const starredTerms = allTerms.filter(t => session.starred.includes(t.id))
+  const isStarred = term ? session.starred.includes(term.id) : false
 
-  const advance = useCallback((knew: boolean) => {
+  /** Starts a pass over `list` from the first card. */
+  function startPass(list: Term[], kind: Pass) {
+    setTerms(list)
+    setPass(kind)
+    setIndex(0)
+    setFlipped(false)
+    setMissedThisPass([])
+    if (kind === "all") setPosition("flashcards", 0)
+  }
+
+  function advance(knew: boolean) {
     if (!term) return
     if (knew) { markMastered(term.id); setGotIt(g => g + 1) }
-    else { markMissed(term.id); setMissed(m => m + 1) }
+    else { markMissed(term.id); setMissed(m => m + 1); setMissedThisPass(prev => [...prev, term]) }
     const next = index + 1
     setIndex(next)
-    setPosition("flashcards", next)
-    setFlipped(false)
-  }, [term, index, markMastered, markMissed, setPosition])
-
-  function handleShuffle() {
-    setTerms(shuffleArray(terms))
-    setIndex(0)
-    setPosition('flashcards', 0)
+    if (pass === "all") setPosition("flashcards", next)
     setFlipped(false)
   }
 
+  function handleShuffle() {
+    startPass(shuffle(terms), pass)
+  }
+
+  function toggleStarredOnly() {
+    if (pass === "starred") startPass(allTerms, "all")
+    else if (starredTerms.length > 0) startPass(starredTerms, "starred")
+  }
+
+  const onKey = useEffectEvent((e: KeyboardEvent) => {
+    if (e.key === " ") { e.preventDefault(); setFlipped(f => !f) }
+    if (e.key === "ArrowRight") advance(true)
+    if (e.key === "ArrowLeft") advance(false)
+    if (e.key.toLowerCase() === "s" && term) toggleStar(term.id)
+  })
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === " ") { e.preventDefault(); setFlipped(f => !f) }
-      if (e.key === "ArrowRight") advance(true)
-      if (e.key === "ArrowLeft")  advance(false)
-    }
+    const handler = (e: KeyboardEvent) => onKey(e)
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
-  }, [flipped, advance])
+  }, [])
 
   const progress = terms.length > 0 ? (index / terms.length) * 100 : 0
   const remaining = terms.length - index
@@ -73,9 +96,16 @@ const FlashcardMode = () => {
           <Text fontSize="sm" color={colors.textMuted} mb={8}>
             {gotIt} got it · {missed} missed · {terms.length} total
           </Text>
-          <ActionBtn onClick={() => { setTerms(filterByCategory(deck.terms, category)); setIndex(0); setPosition("flashcards", 0); setFlipped(false); setGotIt(0); setMissed(0) }}>
-            Restart Deck
-          </ActionBtn>
+          <VStack gap={3}>
+            {missedThisPass.length > 0 && (
+              <ActionBtn onClick={() => startPass(missedThisPass, "missed")}>
+                Study the {missedThisPass.length} {missedThisPass.length === 1 ? "card" : "cards"} you missed
+              </ActionBtn>
+            )}
+            <ActionBtn secondary={missedThisPass.length > 0} onClick={() => { startPass(allTerms, "all"); setGotIt(0); setMissed(0) }}>
+              Restart Deck
+            </ActionBtn>
+          </VStack>
           <Box mt={4}>
             <Box as="button" onClick={() => navigate("/study")} fontSize="sm" color={colors.textMuted} background="none" border="none" cursor="pointer" textDecoration="underline">
               Back to Hub
@@ -90,7 +120,7 @@ const FlashcardMode = () => {
     <PageContainer>
       <Box maxW="680px" mx="auto" px={6} py={8}>
         {/* Top bar */}
-        <Flex align="center" gap={3} mb={7}>
+        <Flex align="center" gap={3} mb={4}>
           <Box as="button" onClick={() => navigate("/study")} fontSize="sm" color={colors.textMuted} background="none" border="none" cursor="pointer" _hover={{ color: colors.accent }}>
             ← Back
           </Box>
@@ -113,6 +143,28 @@ const FlashcardMode = () => {
           </Box>
         </Flex>
 
+        {/* Options */}
+        <Flex align="center" gap={2} mb={6} flexWrap="wrap">
+          <OptionChip
+            pressed={false}
+            onClick={() => { setFlashcardFront(back); setFlipped(false) }}
+            label={`Show the ${sideName(back)} first`}
+          >
+            Front: {sideName(front)} ⇄
+          </OptionChip>
+          <OptionChip
+            pressed={pass === "starred"}
+            disabled={pass !== "starred" && starredTerms.length === 0}
+            onClick={toggleStarredOnly}
+            label="Study starred cards only"
+          >
+            ★ Starred only{starredTerms.length > 0 ? ` (${starredTerms.length})` : ""}
+          </OptionChip>
+          {pass === "missed" && (
+            <Text fontSize="xs" color={colors.accent}>Studying the cards you missed</Text>
+          )}
+        </Flex>
+
         {/* Progress */}
         <Flex align="center" gap={3} mb={2}>
           <Text fontSize="xs" color={colors.textMuted} whiteSpace="nowrap">Card {index + 1} of {terms.length}</Text>
@@ -123,7 +175,7 @@ const FlashcardMode = () => {
         </Flex>
 
         {/* Mini stats */}
-        <Flex gap={4} mb={6}>
+        <Flex gap={4} mb={5} justify="center">
           <Text fontSize="xs" color="#2cb67d">{gotIt} got it</Text>
           <Text fontSize="xs" color="#ff6b6b">{missed} missed</Text>
           <Text fontSize="xs" color={colors.textMuted}>{remaining} remaining</Text>
@@ -147,34 +199,37 @@ const FlashcardMode = () => {
           position="relative"
           _hover={{ borderColor: colors.accentDim }}
         >
-          {questionFirst ? (
-            // Question-and-answer decks: the question is the front, the answer the back.
-            !flipped ? (
-              <>
-                <Text fontSize="xs" textTransform="uppercase" letterSpacing="widest" color={colors.textMuted} mb={5}>
-                  Click to reveal answer
-                </Text>
-                <Text fontSize="xl" fontWeight="800" color={colors.textPrimary} lineHeight="1.4" maxW="480px">{term.definition}</Text>
-                <Text fontSize="xs" color={colors.accent} textTransform="uppercase" letterSpacing="wider" mt={3}>{term.category}</Text>
-              </>
-            ) : (
-              <>
-                <Text fontSize="xs" textTransform="uppercase" letterSpacing="widest" color={colors.accent} mb={5}>Answer</Text>
-                <Text fontSize="xl" fontWeight="800" color={colors.textPrimary} lineHeight="1.5" maxW="480px">{term.term}</Text>
-              </>
-            )
-          ) : !flipped ? (
+          <Box
+            as="button"
+            onClick={(e: React.MouseEvent) => { e.stopPropagation(); toggleStar(term.id) }}
+            aria-label={isStarred ? "Remove star" : "Star this card"}
+            aria-pressed={isStarred}
+            position="absolute"
+            top={3}
+            left={4}
+            fontSize="xl"
+            lineHeight="1"
+            color={isStarred ? "#ffd93d" : colors.border}
+            background="none"
+            border="none"
+            cursor="pointer"
+            _hover={{ color: "#ffd93d" }}
+          >
+            {isStarred ? "★" : "☆"}
+          </Box>
+
+          {!flipped ? (
             <>
               <Text fontSize="xs" textTransform="uppercase" letterSpacing="widest" color={colors.textMuted} mb={5}>
-                Click to reveal definition
+                Click to reveal {sideName(back)}
               </Text>
-              <Text fontSize="2xl" fontWeight="800" color={colors.textPrimary}>{term.term}</Text>
+              <SideText side={front} term={term} large />
               <Text fontSize="xs" color={colors.accent} textTransform="uppercase" letterSpacing="wider" mt={3}>{term.category}</Text>
             </>
           ) : (
             <>
-              <Text fontSize="xs" textTransform="uppercase" letterSpacing="widest" color={colors.accent} mb={5}>Definition</Text>
-              <Text fontSize="sm" color={colors.textMuted} lineHeight="1.8" maxW="480px">{term.definition}</Text>
+              <Text fontSize="xs" textTransform="uppercase" letterSpacing="widest" color={colors.accent} mb={5}>{sideName(back)}</Text>
+              <SideText side={back} term={term} />
             </>
           )}
           <Text position="absolute" bottom={3} right={4} fontSize="xs" color={colors.border}>
@@ -188,6 +243,7 @@ const FlashcardMode = () => {
             <Box
               as="button"
               onClick={() => advance(false)}
+              aria-label="Still learning"
               w="64px" h="64px"
               borderRadius="full"
               border="2px solid #ff6b6b"
@@ -210,6 +266,7 @@ const FlashcardMode = () => {
             <Box
               as="button"
               onClick={() => advance(true)}
+              aria-label="Got it"
               w="64px" h="64px"
               borderRadius="full"
               border="2px solid #2cb67d"
@@ -228,27 +285,59 @@ const FlashcardMode = () => {
         </Flex>
 
         <Text textAlign="center" fontSize="xs" color={colors.border}>
-          Space to flip · ← still learning · → got it · 🔀 shuffle
+          Space to flip · ← still learning · → got it · S star · 🔀 shuffle
         </Text>
       </Box>
     </PageContainer>
   )
 }
 
-const ActionBtn = ({ onClick, children }: { onClick: () => void; children: React.ReactNode }) => (
+/** One side of a card. Terms are short and shown large; definitions are prose, unless they lead. */
+const SideText = ({ side, term, large }: { side: 'term' | 'definition'; term: Term; large?: boolean }) =>
+  side === 'term'
+    ? <Text fontSize={large ? "2xl" : "xl"} fontWeight="800" color={colors.textPrimary} lineHeight="1.4" maxW="480px">{term.term}</Text>
+    : large
+      ? <Text fontSize="lg" fontWeight="700" color={colors.textPrimary} lineHeight="1.5" maxW="480px">{term.definition}</Text>
+      : <Text fontSize="sm" color={colors.textMuted} lineHeight="1.8" maxW="480px">{term.definition}</Text>
+
+const OptionChip = ({ pressed, disabled, onClick, label, children }: { pressed: boolean; disabled?: boolean; onClick: () => void; label: string; children: React.ReactNode }) => (
+  <Box
+    as="button"
+    onClick={disabled ? undefined : onClick}
+    aria-label={label}
+    aria-pressed={pressed}
+    aria-disabled={disabled}
+    bg={pressed ? colors.accentDim : "transparent"}
+    border={`1px solid ${pressed ? colors.accent : colors.border}`}
+    color={pressed ? colors.accent : colors.textMuted}
+    borderRadius="full"
+    px={3}
+    py="3px"
+    fontSize="xs"
+    fontWeight="700"
+    cursor={disabled ? "not-allowed" : "pointer"}
+    opacity={disabled ? 0.45 : 1}
+    textTransform="capitalize"
+    _hover={disabled ? {} : { borderColor: colors.accentSoft }}
+  >
+    {children}
+  </Box>
+)
+
+const ActionBtn = ({ onClick, secondary, children }: { onClick: () => void; secondary?: boolean; children: React.ReactNode }) => (
   <Box
     as="button"
     onClick={onClick}
     w="100%"
-    bg={colors.accent}
-    color={colors.pageBg}
-    border="none"
+    bg={secondary ? "transparent" : colors.accent}
+    color={secondary ? colors.accent : colors.pageBg}
+    border={secondary ? `1px solid ${colors.accent}` : "none"}
     borderRadius="lg"
     py={4}
     fontSize="md"
     fontWeight="800"
     cursor="pointer"
-    _hover={{ bg: colors.accentSoft }}
+    _hover={secondary ? { bg: colors.accentDim } : { bg: colors.accentSoft }}
   >
     {children}
   </Box>
