@@ -1,7 +1,7 @@
 import { isValidDate } from '../dates'
 import { ConditionFailedError, userKey, type Db, type Item, type TxOp } from '../db'
-import { HttpError, json, parseBody, requireText } from '../http'
-import { currentStreak, dailyAwards, isSize, taskAwards, total, type Award, type Size, type Streak } from '../points'
+import { HttpError, json, optionalText, parseBody, requireText } from '../http'
+import { currentStreak, dailyAwards, isFeel, isSize, taskAwards, total, type Award, type Size, type Streak } from '../points'
 import { loadProfile, today } from '../profile'
 import type { Handler, Route } from '../router'
 
@@ -15,12 +15,15 @@ const kindOf = (id: string): Kind | undefined => (id.startsWith('t_') ? 'task' :
 export const itemSk = (id: string) => `${kindOf(id) === 'daily' ? 'DAILY' : 'TASK'}#${id}`
 export const doneSk = (date: string, id: string) => `DONE#${date}#${id}`
 const streakSk = (id: string) => `STREAK#${id}`
+/** Marks that the day's "one more" bonus has been given. */
+const oneMoreSk = (date: string) => `ONEMORE#${date}`
 
 export const toTask = (item: Item) => ({
   id: item.id as string,
   kind: item.kind as Kind,
   title: item.title as string,
   size: item.size as Size,
+  why: (item.why as string | undefined) ?? null,
   goalId: (item.goalId as string | undefined) ?? null,
   dueDate: (item.dueDate as string | undefined) ?? null,
   scheduleId: (item.scheduleId as string | undefined) ?? null,
@@ -39,6 +42,7 @@ async function readFields(db: Db, userId: string, body: Record<string, unknown>,
     if (!isSize(body.size)) throw new HttpError(400, 'size must be small, medium or large')
     fields.size = body.size
   }
+  if (body.why !== undefined) fields.why = optionalText(body.why, 'why')
   if (body.goalId !== undefined) {
     if (body.goalId === null) fields.goalId = undefined
     else {
@@ -96,6 +100,21 @@ const deleteTask: Handler = async ({ userId, db, params }) => {
   return json(204, null)
 }
 
+/** True when every daily is done for `date` and that day's "one more" bonus is still unclaimed. */
+function allDailiesDone(dailies: Item[], done: Item[]): boolean {
+  const doneIds = new Set(done.map(d => d.itemId as string))
+  return dailies.length > 0 && dailies.every(d => doneIds.has(d.id as string))
+}
+
+async function oneMoreAvailable(db: Db, pk: string, date: string): Promise<boolean> {
+  const [dailies, done, used] = await Promise.all([
+    db.query(pk, { prefix: 'DAILY#' }),
+    db.query(pk, { prefix: `DONE#${date}#` }),
+    db.get(pk, oneMoreSk(date)),
+  ])
+  return !used && allDailiesDone(dailies, done)
+}
+
 /**
  * Completes a task or daily for today and awards its points.
  * A task can be completed once ever; a daily once per day.
@@ -112,43 +131,60 @@ const completeTask: Handler = async ctx => {
   if (!item) throw new HttpError(404, 'Task not found')
   const size = item.size as Size
   if (kind === 'task' && item.status === 'done') throw new HttpError(409, 'This task is already done')
+  const prevStreak = kind === 'daily' ? toStreak(await db.get(pk, streakSk(params.id))) : undefined
 
-  let awards: Award[]
-  let streak: Streak | undefined
-  const ops: TxOp[] = []
-  if (kind === 'daily') {
-    const result = dailyAwards(size, toStreak(await db.get(pk, streakSk(params.id))), date)
-    awards = result.awards
-    streak = result.streak
-    ops.push({ type: 'put', item: { PK: pk, SK: streakSk(params.id), dailyId: params.id, ...streak } })
-  } else {
-    awards = taskAwards(size)
-    ops.push({ type: 'put', item: { ...item, status: 'done', completedDate: date } })
+  const write = async (oneMore: boolean) => {
+    let awards: Award[]
+    let streak: Streak | undefined
+    const ops: TxOp[] = []
+    if (kind === 'daily') {
+      const result = dailyAwards(size, prevStreak, date)
+      awards = result.awards
+      streak = result.streak
+      ops.push({ type: 'put', item: { PK: pk, SK: streakSk(params.id), dailyId: params.id, ...streak } })
+    } else {
+      awards = taskAwards(size, oneMore)
+      ops.push({ type: 'put', item: { ...item, status: 'done', completedDate: date } })
+      // The marker is what makes the bonus once per day: a second one cannot be written.
+      if (oneMore) ops.push({ type: 'put', ifAbsent: true, item: { PK: pk, SK: oneMoreSk(date), date, itemId: params.id } })
+    }
+
+    const points = total(awards)
+    const at = now().toISOString()
+    ops.push(
+      // The completion record is what makes "once per day" hold: a second one cannot be written.
+      {
+        type: 'put',
+        ifAbsent: true,
+        item: { PK: pk, SK: doneSk(date, params.id), itemId: params.id, kind, date, size, points, goalId: item.goalId, title: item.title, completedAt: at },
+      },
+      ...awards.map((award, i): TxOp => ({
+        type: 'put',
+        item: { PK: pk, SK: `LEDGER#${date}#${at}#${newId()}#${i}`, date, amount: award.amount, reason: award.reason, itemId: params.id, at },
+      })),
+      { type: 'add', pk, sk: 'PROFILE', field: 'points', amount: points },
+    )
+    await db.transact(ops)
+    return { awards, streak, points }
   }
 
-  const points = total(awards)
-  const at = now().toISOString()
-  ops.push(
-    // The completion record is what makes "once per day" hold: a second one cannot be written.
-    {
-      type: 'put',
-      ifAbsent: true,
-      item: { PK: pk, SK: doneSk(date, params.id), itemId: params.id, kind, date, size, points, goalId: item.goalId, title: item.title, completedAt: at },
-    },
-    ...awards.map((award, i): TxOp => ({
-      type: 'put',
-      item: { PK: pk, SK: `LEDGER#${date}#${at}#${newId()}#${i}`, date, amount: award.amount, reason: award.reason, itemId: params.id, at },
-    })),
-    { type: 'add', pk, sk: 'PROFILE', field: 'points', amount: points },
-  )
-
+  const alreadyDone = new HttpError(409, kind === 'daily' ? 'Already completed today' : 'This task is already done')
+  let result: Awaited<ReturnType<typeof write>>
   try {
-    await db.transact(ops)
+    const oneMore = kind === 'task' && (await oneMoreAvailable(db, pk, date))
+    try {
+      result = await write(oneMore)
+    } catch (err) {
+      // If another request took the bonus first, this one still counts, without it.
+      if (!(err instanceof ConditionFailedError) || !oneMore) throw err
+      result = await write(false)
+    }
   } catch (err) {
-    if (err instanceof ConditionFailedError) throw new HttpError(409, kind === 'daily' ? 'Already completed today' : 'This task is already done')
+    if (err instanceof ConditionFailedError) throw alreadyDone
     throw err
   }
 
+  const { awards, streak, points } = result
   return json(200, {
     id: params.id,
     date,
@@ -159,19 +195,35 @@ const completeTask: Handler = async ctx => {
   })
 }
 
+/** Records how today's completion felt: energized, neutral or drained. `null` clears it. */
+const setFeel: Handler = async ctx => {
+  const { userId, db, params, now, event } = ctx
+  if (!kindOf(params.id)) throw new HttpError(404, 'Task not found')
+  const { feel } = parseBody(event)
+  if (feel !== null && !isFeel(feel)) throw new HttpError(400, 'feel must be energized, neutral or drained')
+  const pk = userKey(userId)
+  const date = today(await loadProfile(ctx), now)
+  const done = await db.get(pk, doneSk(date, params.id))
+  if (!done) throw new HttpError(409, 'Complete it today before saying how it felt')
+  await db.put({ ...done, feel: feel ?? undefined })
+  return json(200, { id: params.id, date, feel })
+}
+
 /** Everything for the home screen: today's dailies with streaks, open tasks, and points. */
 const getToday: Handler = async ctx => {
   const { userId, db, now } = ctx
   const pk = userKey(userId)
   const profile = await loadProfile(ctx)
   const date = today(profile, now)
-  const [tasks, dailies, streaks, done] = await Promise.all([
+  const [tasks, dailies, streaks, done, oneMoreUsed] = await Promise.all([
     db.query(pk, { prefix: 'TASK#' }),
     db.query(pk, { prefix: 'DAILY#' }),
     db.query(pk, { prefix: 'STREAK#' }),
     db.query(pk, { prefix: `DONE#${date}#` }),
+    db.get(pk, oneMoreSk(date)),
   ])
   const doneIds = new Set(done.map(d => d.itemId as string))
+  const feelById = new Map(done.map(d => [d.itemId as string, (d.feel as string | undefined) ?? null]))
   const streakById = new Map(streaks.map(s => [s.dailyId as string, toStreak(s)]))
 
   return json(200, {
@@ -184,11 +236,17 @@ const getToday: Handler = async ctx => {
       return {
         ...toTask(d),
         doneToday: doneIds.has(d.id as string),
+        feel: feelById.get(d.id as string) ?? null,
         streak: { current: currentStreak(streak, date), longest: streak?.longest ?? 0 },
       }
     }),
     // Open tasks, plus the ones finished today so they can be shown ticked off.
-    tasks: tasks.map(toTask).filter(t => t.status !== 'done' || t.completedDate === date),
+    tasks: tasks
+      .map(toTask)
+      .filter(t => t.status !== 'done' || t.completedDate === date)
+      .map(t => ({ ...t, feel: feelById.get(t.id) ?? null })),
+    // "One more": offered once every daily is done, until one more task is finished.
+    oneMore: { available: !oneMoreUsed && allDailiesDone(dailies, done) },
   })
 }
 
@@ -199,4 +257,5 @@ export const taskRoutes: Route[] = [
   { method: 'PATCH', path: '/tasks/{id}', handler: updateTask },
   { method: 'DELETE', path: '/tasks/{id}', handler: deleteTask },
   { method: 'POST', path: '/tasks/{id}/complete', handler: completeTask },
+  { method: 'POST', path: '/tasks/{id}/feel', handler: setFeel },
 ]

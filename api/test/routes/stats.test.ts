@@ -52,9 +52,10 @@ describe('GET /heatmap', () => {
     const { user, setDate } = createApp()
     const { data: daily } = await user.post('/tasks', { title: 'x', size: 'medium', repeat: 'daily' })
     setDate('2026-11-19'); await user.post(`/tasks/${daily.id}/complete`)
-    setDate('2026-11-21'); await user.post(`/tasks/${daily.id}/complete`)
+    setDate('2026-11-21')
     const { data: task } = await user.post('/tasks', { title: 'y', size: 'small' })
     await user.post(`/tasks/${task.id}/complete`)
+    await user.post(`/tasks/${daily.id}/complete`)
 
     const { data } = await user.get('/heatmap')
     expect(data).toMatchObject({ from: '2025-11-22', to: '2026-11-21' })

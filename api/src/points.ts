@@ -9,6 +9,9 @@ import { addDays } from './dates'
  *   is completed, and starts over after a missed day.
  * - Every 7th day in a row earns a weekly streak bonus, and every 30th day in a row a
  *   monthly streak bonus. Each bonus is small 5, medium 10, large 15, by the daily's size.
+ * - "One more": once every daily is done for the day, the next one-off task completed
+ *   that day counts double: a bonus equal to its base points (1, 2 or 3). Once per day,
+ *   and only for users who have at least one daily.
  * - No other bonuses yet.
  * - Rewards cost whatever the user set; redeeming needs at least that many points.
  */
@@ -23,7 +26,12 @@ export const STREAK_BONUS: Record<Size, number> = { small: 5, medium: 10, large:
 export const WEEKLY_STREAK_DAYS = 7
 export const MONTHLY_STREAK_DAYS = 30
 
-export type AwardReason = 'task' | 'daily' | 'streak-week' | 'streak-month'
+export type AwardReason = 'task' | 'daily' | 'streak-week' | 'streak-month' | 'one-more'
+
+/** How a completed task felt. Optional, and worth no points. */
+export const FEELS = ['energized', 'neutral', 'drained'] as const
+export type Feel = (typeof FEELS)[number]
+export const isFeel = (f: unknown): f is Feel => FEELS.includes(f as Feel)
 
 export interface Award {
   reason: AwardReason
@@ -69,8 +77,12 @@ export function streakBonuses(size: Size, current: number): Award[] {
 }
 
 /** Everything earned by completing a one-off task. */
-export function taskAwards(size: Size): Award[] {
-  return [{ reason: 'task', amount: BASE_POINTS[size] }]
+export function taskAwards(size: Size, oneMore = false): Award[] {
+  return [
+    { reason: 'task', amount: BASE_POINTS[size] },
+    // "One more" makes the task count double.
+    ...(oneMore ? [{ reason: 'one-more' as const, amount: BASE_POINTS[size] }] : []),
+  ]
 }
 
 /** Everything earned by completing a daily on `date`, and its streak afterwards. */

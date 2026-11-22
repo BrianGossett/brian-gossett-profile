@@ -20,6 +20,7 @@ Agreed 2026-11-21. All of the math is in `src/points.ts`, as pure functions.
 - **Each daily has its own streak.** It grows by one for each day in a row the daily is completed and starts over after a missed day.
 - Every **7th day in a row** earns a weekly streak bonus, and every **30th day in a row** a monthly streak bonus, on top of the base points. Both use the streak bonus row above, by the daily's size.
 - A daily can be completed once per day and a task once ever. A second attempt returns 409 and awards nothing.
+- **One more:** once every daily is done for the day, the next one-off task completed that day counts double: it earns a bonus equal to its base points (1, 2 or 3). Once per day, and only if the user has at least one daily.
 - There are no other bonuses yet.
 - **Rewards** cost whatever the user sets. Redeeming is refused (409) when the balance is lower than the cost.
 - **Goals** are named groups for tasks and dailies. They earn no points.
@@ -31,15 +32,16 @@ Agreed 2026-11-21. All of the math is in `src/points.ts`, as pure functions.
 |---|---|
 | `GET /me` | The caller's profile: `points` (balance), `timezone`, `householdId`. Created on first call |
 | `PATCH /me` | Change `timezone` |
-| `GET /today` | Today's dailies (with `doneToday` and `streak`), open tasks, `balance`, `earnedToday` |
+| `GET /today` | Today's dailies (with `doneToday`, `streak` and `feel`), open tasks, `balance`, `earnedToday`, and `oneMore` (`available`) |
 | `GET /tasks` | All tasks and dailies |
-| `POST /tasks` | Create. Body: `title`, `size`, optional `repeat` (`none` or `daily`), `goalId`, `dueDate` |
+| `POST /tasks` | Create. Body: `title`, `size`, optional `repeat` (`none` or `daily`), `goalId`, `dueDate`, `why` (a line on why it matters) |
 | `PATCH /tasks/{id}`, `DELETE /tasks/{id}` | Edit or delete |
 | `POST /tasks/{id}/complete` | Complete for today. Returns `points`, `awards`, `streak`, `balance` |
-| `GET /goals`, `POST /goals`, `PATCH /goals/{id}`, `DELETE /goals/{id}` | Goals. Body: `name` |
+| `POST /tasks/{id}/feel` | Say how today's completion felt: `feel` is `energized`, `neutral`, `drained` or `null`. No points |
+| `GET /goals`, `POST /goals`, `PATCH /goals/{id}`, `DELETE /goals/{id}` | Goals. Body: `name`, optional `why` |
 | `GET /rewards`, `POST /rewards`, `PATCH /rewards/{id}`, `DELETE /rewards/{id}` | Rewards. Body: `name`, `cost` |
 | `POST /rewards/{id}/redeem` | Spend points on a reward. Returns the new `balance` |
-| `GET /summary?period=week\|month\|year` | Earned, streak bonuses, spent, completions and a per-goal breakdown for the current calendar week (Monday to Sunday), month or year |
+| `GET /summary?period=week\|month\|year` | Earned, streak bonuses, spent, one-more bonuses, spent, completions, a per-goal breakdown, `feelings` counts and the five most `draining` tasks for the current calendar week (Monday to Sunday), month or year |
 | `GET /heatmap` | Completions and points per day for the last 365 days |
 | `GET /schedules` | The caller's schedules, plus example `templates` |
 | `POST /schedules` | Create from `{ name, items }` or from an example with `{ templateId }` |
@@ -64,9 +66,10 @@ Under `USER#<userId>`:
 | `GOAL#<id>` | A goal |
 | `TASK#t_<id>` | A one-off task |
 | `DAILY#d_<id>` | A daily |
-| `DONE#<date>#<itemId>` | One completion. Its key is what stops a second completion on the same day |
+| `DONE#<date>#<itemId>` | One completion, with an optional `feel`. Its key is what stops a second completion on the same day |
+| `ONEMORE#<date>` | Marks that the day's one-more bonus was given |
 | `STREAK#d_<id>` | A daily's streak: `current`, `longest`, `lastDate` |
-| `LEDGER#<date>#<time>#<id>` | Every change to the balance: `amount` and `reason` (`task`, `daily`, `streak-week`, `streak-month`, `redeem`) |
+| `LEDGER#<date>#<time>#<id>` | Every change to the balance: `amount` and `reason` (`task`, `daily`, `streak-week`, `streak-month`, `one-more`, `redeem`) |
 | `REWARD#<id>` | A reward |
 | `REDEEM#<date>#<time>#<id>` | A redemption |
 | `DECK#<deckId>` | A custom flashcard deck (at most 2,000 terms and about 350 KB) |
