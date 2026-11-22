@@ -8,6 +8,7 @@ import MultipleChoiceMode from '../StudyPage/MultipleChoiceMode'
 import TypeInMode from '../StudyPage/TypeInMode'
 import MatchingMode from '../StudyPage/MatchingMode'
 import LearnMode from '../StudyPage/LearnMode'
+import TestMode from '../StudyPage/TestMode'
 import ExamPrepHub from '../ExamPrepPage'
 import ExamSimulation from '../ExamPrepPage/ExamSimulation'
 import AdvancedDrills from '../ExamPrepPage/AdvancedDrills'
@@ -31,6 +32,7 @@ const ProfileRouting = () => {
       <Route path="/study/:deckId/type" element={<DeckGate><TypeInMode /></DeckGate>} />
       <Route path="/study/:deckId/match" element={<DeckGate><MatchingMode /></DeckGate>} />
       <Route path="/study/:deckId/learn" element={<DeckGate><LearnMode /></DeckGate>} />
+      <Route path="/study/:deckId/test" element={<DeckGate><TestMode /></DeckGate>} />
       <Route path="/study/exam" element={<ExamPrepHub />} />
       <Route path="/study/exam/simulation" element={<ExamSimulation />} />
       <Route path="/study/exam/drills" element={<AdvancedDrills />} />

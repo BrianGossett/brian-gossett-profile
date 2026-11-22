@@ -38,7 +38,7 @@ export function getDistractors(correct: Term, pool: readonly Term[], count = 3, 
 /** Two terms with the same key are the same answer, however they are capitalised or punctuated. */
 export const answerKey = (term: Term) => normalize(term.term)
 
-function normalize(s: string): string {
+export function normalize(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]/g, "").trim()
 }
 
