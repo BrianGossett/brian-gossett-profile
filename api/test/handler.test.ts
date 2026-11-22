@@ -1,10 +1,9 @@
-import type { APIGatewayProxyEventV2WithJWTAuthorizer } from 'aws-lambda'
 import { handler } from '../src/handler'
+import { makeEvent } from './helpers'
 
 describe('handler', () => {
-  it('returns 404 for an unknown route', async () => {
-    const event = { routeKey: 'GET /nope' } as APIGatewayProxyEventV2WithJWTAuthorizer
-    const res = await handler(event)
-    expect(res).toMatchObject({ statusCode: 404 })
+  it('fails clearly when TABLE_NAME is missing', async () => {
+    delete process.env.TABLE_NAME
+    await expect(handler(makeEvent('GET', '/me'))).rejects.toThrow('TABLE_NAME')
   })
 })

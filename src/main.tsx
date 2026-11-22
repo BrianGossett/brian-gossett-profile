@@ -4,13 +4,16 @@ import ProfileRouting from './Pages/ProfileRouting'
 import { BrowserRouter } from 'react-router'
 import { ChakraProvider } from '@chakra-ui/react'
 import { system } from './Theme'
+import { AuthProvider } from './auth/AuthProvider'
 
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <ChakraProvider value={system}>
-        <ProfileRouting />  
+        <AuthProvider>
+          <ProfileRouting />
+        </AuthProvider>
       </ChakraProvider>
     </BrowserRouter>
   </StrictMode>,

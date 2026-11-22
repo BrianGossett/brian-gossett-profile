@@ -4,9 +4,12 @@ import { Box, Flex, Text, Input, VStack } from '@chakra-ui/react'
 import { colors } from '../../Theme'
 import type { Deck } from '../../hooks/useDecks'
 import type { Term } from '../../data/terms'
+import { assignTermIds } from '../../utils/termIds'
 
 interface TermRow {
   id: string
+  /** The term's ID in the deck being edited; unset for a row added in this edit. */
+  termId?: number
   term: string
   definition: string
   category: string
@@ -21,7 +24,7 @@ interface DeckModalProps {
 const DeckModal = ({ initialDeck, onSave, onClose }: DeckModalProps) => {
   const [deckName, setDeckName] = useState(initialDeck?.name ?? '')
   const [rows, setRows] = useState<TermRow[]>(
-    initialDeck?.terms.map(t => ({ id: crypto.randomUUID(), term: t.term, definition: t.definition, category: t.category })) ?? [
+    initialDeck?.terms.map(t => ({ id: crypto.randomUUID(), termId: t.id, term: t.term, definition: t.definition, category: t.category })) ?? [
       { id: crypto.randomUUID(), term: '', definition: '', category: 'General' },
     ]
   )
@@ -39,7 +42,7 @@ const DeckModal = ({ initialDeck, onSave, onClose }: DeckModalProps) => {
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
   }
 
-  function updateRow(index: number, field: keyof TermRow, value: string) {
+  function updateRow(index: number, field: 'term' | 'definition' | 'category', value: string) {
     setRows(prev => prev.map((r, i) => i === index ? { ...r, [field]: value } : r))
   }
 
@@ -51,12 +54,16 @@ const DeckModal = ({ initialDeck, onSave, onClose }: DeckModalProps) => {
     if (!deckName.trim()) { setError('Deck name is required.'); return }
     const valid = rows.filter(r => r.term.trim() && r.definition.trim())
     if (valid.length === 0) { setError('Add at least one term with a definition.'); return }
-    const terms: Term[] = valid.map((r, i) => ({
-      id: i + 1,
-      term: r.term.trim(),
-      definition: r.definition.trim(),
-      category: r.category.trim() || 'General',
-    }))
+    // Existing terms keep their IDs so saved study progress stays on the right term.
+    const terms: Term[] = assignTermIds(
+      valid.map(r => ({
+        termId: r.termId,
+        term: r.term.trim(),
+        definition: r.definition.trim(),
+        category: r.category.trim() || 'General',
+      })),
+      initialDeck?.terms.map(t => t.id),
+    )
     onSave(deckName.trim(), terms)
   }
 

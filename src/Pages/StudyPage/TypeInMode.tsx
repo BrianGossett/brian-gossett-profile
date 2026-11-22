@@ -6,28 +6,7 @@ import { colors } from "../../Theme"
 import { type Term } from "../../data/terms"
 import { useDeckById, filterByCategory } from "../../hooks/useDecks"
 import { useStudySession } from "../../hooks/useStudySession"
-
-function normalize(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9]/g, "").trim()
-}
-
-function isMatch(input: string, term: Term): boolean {
-  const n = normalize(input)
-  const t = normalize(term.term)
-  if (n === t) return true
-  const core = normalize(term.term.split(" ")[0])
-  if (core.length >= 5 && n.includes(core)) return true
-  return false
-}
-
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
-}
+import { isMatch, shuffle } from "../../utils/studyQuestions"
 
 const TypeInMode = () => {
   const navigate = useNavigate()

@@ -3,25 +3,9 @@ import { Box, Flex, Text, VStack } from "@chakra-ui/react"
 import { useNavigate, useParams } from "react-router"
 import PageContainer from "../../Components/Container"
 import { colors } from "../../Theme"
-import { type Term } from "../../data/terms"
 import { useDeckById, filterByCategory } from "../../hooks/useDecks"
 import { useStudySession } from "../../hooks/useStudySession"
-
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
-}
-
-function getDistractors(correct: Term, pool: Term[]): Term[] {
-  const same = pool.filter(t => t.id !== correct.id && t.category === correct.category)
-  const other = pool.filter(t => t.id !== correct.id && t.category !== correct.category)
-  const candidates = shuffle([...same, ...other])
-  return candidates.slice(0, 3)
-}
+import { getDistractors, shuffle } from "../../utils/studyQuestions"
 
 const MultipleChoiceMode = () => {
   const navigate = useNavigate()

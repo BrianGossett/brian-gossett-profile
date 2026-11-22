@@ -11,6 +11,8 @@ AWS CDK (TypeScript) for the backend that sits beside the React app. The site it
 | Stack | What it holds |
 |---|---|
 | `ProfileData` | The DynamoDB table (`lib/data-stack.ts`) |
+| `ProfileAuth` | The Cognito user pool, Google sign-in, hosted sign-in domain and web client (`lib/auth-stack.ts`) |
+| `ProfileApi` | The HTTP API, its Cognito authorizer and the one Lambda (`lib/api-stack.ts`, code in `../api/`) |
 
 Commands, from `infra/` with the project's Node (`nvm use`):
 
@@ -18,7 +20,22 @@ Commands, from `infra/` with the project's Node (`nvm use`):
 npm test                                             # CDK assertion tests
 npx cdk diff ProfileData --profile Gossett-Claude    # what a deploy would change
 npx cdk deploy ProfileData --profile Gossett-Claude  # deploy
+scripts/deploy-auth.sh                               # deploy ProfileAuth (see Auth below)
 ```
+
+### Deployed values
+
+Deployed to us-east-2 on 2026-11-21. None of these are secret; the browser app needs them (Ticket 13 turns them into environment variables).
+
+| | |
+|---|---|
+| API URL | `https://crxtyxul9k.execute-api.us-east-2.amazonaws.com` |
+| Cognito user pool ID | `us-east-2_VW2SULktv` |
+| Cognito web client ID | `1ttktvjg759cklsk37cgn3g243` |
+| Hosted sign-in domain | `https://briangossett.auth.us-east-2.amazoncognito.com` |
+| Table name | `ProfileData-TableCD117FA1-SQQBF2JB6PJJ` |
+
+Checked after deploy: every route returns 401 with no token or a bad token; CORS preflights are answered for the site origins only; the hosted sign-in redirects to Google and rejects a redirect address that isn't registered. A real Google sign-in from the app on localhost worked on 2026-11-21, and `GET /me` with that token returned the profile.
 
 ## Data: one DynamoDB table
 
@@ -55,6 +72,53 @@ A household's items share the partition key `HH#<householdId>`:
 | `SCHED#…` | A schedule |
 
 What goes after each `#`, each item's attributes, and what `GSI1PK`/`GSI1SK` hold are decided by the API tickets (4–6) and should be added here as they are built.
+
+## Auth: Cognito with Google sign-in
+
+- One user pool on the Lite plan (the cheapest; Cognito's free allowance covers a personal app)
+- **Google is the only way to sign in.** No passwords and no self sign-up. Anyone with a Google account who signs in gets a user in the pool; restricting it to specific people would need a pre-sign-up check (not built)
+- Hosted sign-in domain: `https://briangossett.auth.us-east-2.amazoncognito.com`
+- One web client: authorization code flow, no client secret. The browser app must use PKCE (Cognito accepts PKCE from a public client but cannot be set to require it)
+- Sign-in and sign-out return to `/todo` on each origin in `siteOrigins` (`bin/app.ts`): `briangossett.org`, `www.briangossett.org`, the Amplify address, and `http://localhost:5173`
+- The user pool is retained if the stack is deleted
+
+### One-time setup before the first deploy
+
+1. In Google Cloud Console, create an OAuth client of type **Web application** with:
+   - Authorized redirect URI: `https://briangossett.auth.us-east-2.amazoncognito.com/oauth2/idpresponse`
+   - Authorized JavaScript origin: `https://briangossett.auth.us-east-2.amazoncognito.com`
+2. In the Amplify console, under Hosting > Secrets, add two secrets for **All branches**, pasting the bare values with no quotes:
+   - `client_id` — the Google client ID
+   - `client_secret` — the Google client secret
+
+   Amplify stores these as encrypted Parameter Store values (`/amplify/shared/d3ksz8q52usvuz/…`), which is free. Secrets Manager would cost about $0.40 a month per secret.
+
+### Deploying
+
+CloudFormation can't read encrypted Parameter Store values for Cognito, so the stack takes the Google client ID and secret as deploy parameters (the secret is `NoEcho`, so CloudFormation never shows it). `scripts/deploy-auth.sh` reads both from Parameter Store and passes them in:
+
+```bash
+scripts/deploy-auth.sh --check   # validate the stored values; deploys nothing
+scripts/deploy-auth.sh           # deploy ProfileAuth
+```
+
+Use the script for the first deploy and whenever the Google client changes. Any other deploy (including `cdk deploy ProfileApi`, which depends on this stack) reuses the values CloudFormation already has.
+
+The stack's outputs (`UserPoolId`, `UserPoolClientId`, `HostedUiDomain`, `GoogleRedirectUri`) are what the app's environment variables are filled from (Ticket 13).
+
+## API: one Lambda behind an HTTP API
+
+- One Node.js 22 Lambda (ARM, 256 MB), bundled from `api/src/handler.ts`. The AWS SDK is left out of the bundle because the Lambda runtime provides it
+- An HTTP API with a Cognito JWT authorizer on every route. A request with no valid token gets 401 from API Gateway and never reaches the Lambda
+- One catch-all route (`/{proxy+}`) sends every path to the Lambda, whose own router (`api/src/router.ts`) answers 404 for paths it doesn't know. To add an endpoint, add a route in `api/src/routes/` — no infrastructure change
+- **The user ID is always the token's `sub` claim** (`api/src/auth.ts`). Handlers get it as `ctx.userId`; nothing reads a user ID from the path, query or body
+- The app sends the Cognito **ID token** in the `Authorization` header (it carries the email and name that `GET /me` stores on first call)
+- CORS allows only the origins in `siteOrigins` (`bin/app.ts`)
+- The Lambda can read and write the table and nothing else. Its logs are deleted after a month
+
+| Route | What it does |
+|---|---|
+| `GET /me` | Returns the caller's profile (`USER#<userId>` / `PROFILE`), creating it from the token on first call |
 
 ## Hosting (AWS Amplify)
 

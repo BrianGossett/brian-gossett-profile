@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Box, Flex, Link, Text, VStack } from "@chakra-ui/react"
 import { NavLink } from "react-router"
 import { colors } from "../../Theme"
+import AuthControl from "./AuthControl"
+import { useAuth } from "../../auth/authContext"
 
 const PageContainer: React.FC<React.PropsWithChildren> = ({ children }) => {
   return (
@@ -17,6 +19,7 @@ const PageContainer: React.FC<React.PropsWithChildren> = ({ children }) => {
 
 export const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false)
+  const { available } = useAuth()
 
   const navLinks = (
     <>
@@ -44,6 +47,18 @@ export const Header = () => {
       >
         Study
       </NavLink>
+      {available && (
+        <NavLink
+          to="/todo"
+          style={({ isActive }) => ({
+            textDecoration: 'none',
+            fontSize: '14px',
+            color: isActive ? colors.accent : colors.textMuted,
+          })}
+        >
+          To-do
+        </NavLink>
+      )}
     </>
   )
 
@@ -66,6 +81,10 @@ export const Header = () => {
         <Flex as="nav" gap={6} display={{ base: 'none', md: 'flex' }}>
           {navLinks}
         </Flex>
+
+        <Box ml="auto" display={{ base: 'none', md: 'block' }}>
+          <AuthControl />
+        </Box>
 
         {/* Hamburger button — mobile only */}
         <Box
@@ -99,6 +118,7 @@ export const Header = () => {
           onClick={() => setMenuOpen(false)}
         >
           {navLinks}
+          <AuthControl />
         </Box>
       )}
     </Box>

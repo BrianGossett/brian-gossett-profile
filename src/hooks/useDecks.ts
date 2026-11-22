@@ -1,13 +1,13 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useSyncExternalStore } from 'react'
 import { ALL_TERMS, type Term } from '../data/terms'
+import { DEADLOCK_TERMS } from '../data/deadlock'
+import { POKEMON_TYPE_TERMS } from '../data/pokemonTypes'
+import { readDecks, subscribeDecks, writeDecks, type Deck } from './deckStore'
+import { deckSync, type SyncStatus } from './deckSync'
+import { removeProgress } from './progressStore'
+import { progressSync } from './progressSync'
 
-const DECKS_KEY = 'study-custom-decks'
-
-export interface Deck {
-  id: string
-  name: string
-  terms: Term[]
-}
+export type { Deck }
 
 export const DEFAULT_DECK: Deck = {
   id: 'default',
@@ -15,18 +15,32 @@ export const DEFAULT_DECK: Deck = {
   terms: ALL_TERMS,
 }
 
-function loadCustomDecks(): Deck[] {
-  try {
-    const raw = localStorage.getItem(DECKS_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
+export const POKEMON_TYPES_DECK: Deck = {
+  id: 'pokemon-types',
+  name: 'Pokémon Type Matchups',
+  terms: POKEMON_TYPE_TERMS,
+  front: 'definition',
 }
 
-function saveCustomDecks(decks: Deck[]): void {
-  localStorage.setItem(DECKS_KEY, JSON.stringify(decks))
+/**
+ * Decks that ship with the app. They are never stored per user or sent to the
+ * API; only a user's progress on them is saved.
+ */
+export const DEADLOCK_DECK: Deck = {
+  id: 'deadlock',
+  name: 'Deadlock',
+  terms: DEADLOCK_TERMS,
+  front: 'definition',
 }
+
+export const BUILT_IN_DECKS: readonly (Deck & { icon: string })[] = [
+  { ...DEFAULT_DECK, icon: '🎵' },
+  { ...POKEMON_TYPES_DECK, icon: '⚡' },
+  { ...DEADLOCK_DECK, icon: '🕵️' },
+]
+
+export const findBuiltInDeck = (deckId: string) => BUILT_IN_DECKS.find(d => d.id === deckId)
+export const isBuiltInDeck = (deckId: string) => findBuiltInDeck(deckId) !== undefined
 
 export function filterByCategory(terms: Term[], category: string): Term[] {
   if (category === 'all') return terms
@@ -38,46 +52,44 @@ export function getDeckCategories(terms: Term[]): string[] {
 }
 
 export function useDecks() {
-  const [customDecks, setCustomDecks] = useState<Deck[]>(loadCustomDecks)
+  const customDecks = useSyncExternalStore(subscribeDecks, readDecks)
 
+  // Each change is written to this browser first, so these stay synchronous,
+  // and then sent to the account in the background when someone is signed in.
   const createDeck = useCallback((name: string, terms: Term[]): Deck => {
     const deck: Deck = { id: crypto.randomUUID(), name, terms }
-    setCustomDecks(prev => {
-      const next = [...prev, deck]
-      saveCustomDecks(next)
-      return next
-    })
+    writeDecks([...readDecks(), deck])
+    deckSync.put(deck)
     return deck
   }, [])
 
   const updateDeck = useCallback((id: string, name: string, terms: Term[]): void => {
-    setCustomDecks(prev => {
-      const next = prev.map(d => d.id === id ? { ...d, name, terms } : d)
-      saveCustomDecks(next)
-      return next
-    })
+    const next = readDecks().map(d => d.id === id ? { ...d, name, terms } : d)
+    writeDecks(next)
+    const updated = next.find(d => d.id === id)
+    if (updated) deckSync.put(updated)
   }, [])
 
   const deleteDeck = useCallback((id: string): void => {
-    setCustomDecks(prev => {
-      const next = prev.filter(d => d.id !== id)
-      saveCustomDecks(next)
-      return next
-    })
+    writeDecks(readDecks().filter(d => d.id !== id))
+    deckSync.remove(id)
+    // The deck's progress goes with it (the API deletes its copy along with the deck).
+    removeProgress(id)
+    progressSync.forget(id)
   }, [])
 
   return { customDecks, createDeck, updateDeck, deleteDeck }
 }
 
 export function useDeckById(deckId: string): Deck {
-  return useMemo(() => {
-    if (deckId === 'default') return DEFAULT_DECK
-    try {
-      const raw = localStorage.getItem(DECKS_KEY)
-      const decks: Deck[] = raw ? JSON.parse(raw) : []
-      return decks.find(d => d.id === deckId) ?? DEFAULT_DECK
-    } catch {
-      return DEFAULT_DECK
-    }
-  }, [deckId])
+  const decks = useSyncExternalStore(subscribeDecks, readDecks)
+  return useMemo(
+    () => findBuiltInDeck(deckId) ?? decks.find(d => d.id === deckId) ?? DEFAULT_DECK,
+    [deckId, decks],
+  )
+}
+
+/** Where loading the signed-in user's decks from their account has got to. */
+export function useDeckSyncStatus(): SyncStatus {
+  return useSyncExternalStore(deckSync.subscribe, deckSync.getStatus)
 }
