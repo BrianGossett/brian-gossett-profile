@@ -8,6 +8,7 @@ import { ALL_SCORES, sampleScoreQuestions, randomPage } from '../../data/scores'
 import SelfGradeButtons from './shared/SelfGradeButtons'
 import PdfViewer from './shared/PdfViewer'
 import TermSidebar from './shared/TermSidebar'
+import AnswerComparison from './shared/AnswerComparison'
 
 type CQPhase = 'part1-writing' | 'part1-grading' | 'part2-writing' | 'part2-grading' | 'results'
 
@@ -217,16 +218,7 @@ const ComprehensiveQuiz = () => {
         </Flex>
         <Box maxW="800px" mx="auto" p={{ base: 4, md: 8 }}>
           <Text fontSize="sm" color={colors.textPrimary} mb={4} fontWeight="700">{question.prompt}</Text>
-          <Flex gap={4} mb={4} direction={{ base: 'column', md: 'row' }}>
-            <Box flex={1} bg={colors.surface} border={`1px solid ${colors.border}`} borderRadius="xl" p={4}>
-              <Text fontSize="9px" color={colors.textMuted} mb={1}>YOUR ANSWER</Text>
-              <Text fontSize="sm" color={colors.textPrimary} whiteSpace="pre-wrap">{scoreAnswers[scoreGradingIdx] || '(no answer)'}</Text>
-            </Box>
-            <Box flex={1} bg="#0d1a0d" border="1px solid #1a3a1a" borderRadius="xl" p={4}>
-              <Text fontSize="9px" color="#2cb67d" mb={1}>MODEL ANSWER</Text>
-              <Text fontSize="sm" color={colors.textPrimary} lineHeight="1.6">{question.modelAnswer}</Text>
-            </Box>
-          </Flex>
+          <AnswerComparison answer={scoreAnswers[scoreGradingIdx]} modelAnswer={question.modelAnswer} />
           <Text fontSize="9px" color={colors.textMuted} mb={2}>Score: {score.composer} — {score.title}</Text>
           <SelfGradeButtons
             value={scoreGrades[scoreGradingIdx]}

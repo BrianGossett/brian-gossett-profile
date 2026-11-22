@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useEffectEvent, useMemo } from "react"
 import { Box, Flex, Text, VStack } from "@chakra-ui/react"
 import { useNavigate, useParams } from "react-router"
 import PageContainer from "../../Components/Container"
@@ -31,20 +31,24 @@ const MultipleChoiceMode = () => {
 
   useEffect(() => { setLastMode("quiz") }, [setLastMode])
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const q = questions[index]
-      if (!q) return
-      const keys: Record<string, number> = { a: 0, b: 1, c: 2, d: 3 }
-      if (selected === null && e.key.toLowerCase() in keys) {
-        const optIndex = keys[e.key.toLowerCase()]
-        if (q.options[optIndex]) pick(q.options[optIndex].id)
-      }
-      if (e.key === "Enter" && selected !== null) advance()
+  // An effect event always sees the current question and selection, so the
+  // listener is attached once and never acts on an earlier question.
+  const onKey = useEffectEvent((e: KeyboardEvent) => {
+    const current = questions[index]
+    if (!current) return
+    const keys: Record<string, number> = { a: 0, b: 1, c: 2, d: 3 }
+    if (selected === null && e.key.toLowerCase() in keys) {
+      const option = current.options[keys[e.key.toLowerCase()]]
+      if (option) pick(option.id)
     }
+    if (e.key === "Enter" && selected !== null) advance()
+  })
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => onKey(e)
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
-  }, [index, selected, questions])
+  }, [])
 
   const q = questions[index]
 

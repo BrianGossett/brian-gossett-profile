@@ -10,6 +10,7 @@ import SelfGradeButtons from './shared/SelfGradeButtons'
 import PdfViewer from './shared/PdfViewer'
 import TermSidebar from './shared/TermSidebar'
 import { useCountdown } from './shared/useCountdown'
+import AnswerComparison from './shared/AnswerComparison'
 
 type SimPhase =
   | 'config'
@@ -366,16 +367,7 @@ const ExamSimulation = () => {
               <Box key={i} bg={colors.surface} border={`1px solid ${colors.border}`} borderRadius="xl" p={5}>
                 <Text fontSize="xs" textTransform="uppercase" letterSpacing="widest" color={colors.accent} fontWeight="700" mb={2}>Question {i + 1}</Text>
                 <Text fontSize="sm" color={colors.textPrimary} mb={3}>{q.prompt}</Text>
-                <Flex gap={4} mb={3} direction={{ base: 'column', md: 'row' }}>
-                  <Box flex={1} bg={colors.pageBg} border={`1px solid ${colors.border}`} borderRadius="lg" p={3}>
-                    <Text fontSize="9px" color={colors.textMuted} mb={1}>YOUR ANSWER</Text>
-                    <Text fontSize="sm" color={colors.textPrimary} whiteSpace="pre-wrap">{answers[i] || '(no answer)'}</Text>
-                  </Box>
-                  <Box flex={1} bg="#0d1a0d" border="1px solid #1a3a1a" borderRadius="lg" p={3}>
-                    <Text fontSize="9px" color="#2cb67d" mb={1}>MODEL ANSWER</Text>
-                    <Text fontSize="sm" color={colors.textPrimary} lineHeight="1.6">{q.modelAnswer}</Text>
-                  </Box>
-                </Flex>
+                <AnswerComparison variant="card" answer={answers[i]} modelAnswer={q.modelAnswer} />
                 <SelfGradeButtons
                   value={grades[i]}
                   onChange={v => {
