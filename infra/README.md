@@ -25,7 +25,7 @@ scripts/deploy-auth.sh                               # deploy ProfileAuth (see A
 
 ### Deployed values
 
-Deployed to us-east-2 on 2026-11-21. None of these are secret; the browser app needs them (Ticket 13 turns them into environment variables).
+Deployed to us-east-2 on 2026-11-21. None of these are secret; the browser app needs them (they are committed in `.env.production` and `.env.development`).
 
 | | |
 |---|---|
@@ -104,7 +104,7 @@ scripts/deploy-auth.sh           # deploy ProfileAuth
 
 Use the script for the first deploy and whenever the Google client changes. Any other deploy (including `cdk deploy ProfileApi`, which depends on this stack) reuses the values CloudFormation already has.
 
-The stack's outputs (`UserPoolId`, `UserPoolClientId`, `HostedUiDomain`, `GoogleRedirectUri`) are what the app's environment variables are filled from (Ticket 13).
+The stack's outputs (`UserPoolId`, `UserPoolClientId`, `HostedUiDomain`, `GoogleRedirectUri`) are where the values in `.env.production` come from.
 
 ## API: one Lambda behind an HTTP API
 
@@ -141,22 +141,28 @@ All three addresses returned 200 on 2026-11-21. The domain association reports `
 
 The build spec is `amplify.yml` at the repo root, which overrides whatever is saved in the Amplify console. It switches to the Node version in `.nvmrc`, prints `node -v` and `npm -v`, then runs `npm ci` and `npm run build` and publishes `dist`.
 
-- Amplify builds its own `dist`; the `dist/` files committed in git are not used.
+- Amplify builds its own `dist`; `dist/` is not tracked in git.
 - **Node is pinned to 24, not 26.** The app needs Node 22.12 or newer (Vite 8, Vitest 5). Node 26's official binary links `libatomic.so.1`, which the Amplify build image doesn't have, and the build doesn't run as root, so it can't be installed (`yum install` fails). Node 24 and 22 don't need it. Revisit when the Amplify image ships `libatomic` or a newer Node.
 - `--skip-default-packages` stops nvm reinstalling Amplify's global tools (Cypress, Hugo, the Amplify CLI…) for the new Node on every build.
 
 ### Rewrites and redirects
 
-One rule:
+One rule, kept in `infra/amplify-rewrites.json` and applied with:
+
+```bash
+aws amplify update-app --app-id d3ksz8q52usvuz --custom-rules file://infra/amplify-rewrites.json --profile Gossett-Claude --region us-east-2
+```
 
 | Source | Target | Type |
 |---|---|---|
-| `/<*>` | `/index.html` | `404-200` |
+| Any path with no file extension, or with one that isn't a known file type | `/index.html` | `200` (rewrite) |
 
-Observed on the live site (2026-11-21):
+- Page paths (`/todo`, `/todo/rewards`, `/study/default/flashcards`, and the sign-in return `/todo?code=…`) get the app with status 200 and no redirect.
+- Real files (JS, CSS, images, `manifest.webmanifest`, `sw.js`, PDFs) are served as files, and a missing one is a real 404.
+- When the build starts emitting a new kind of file, add its extension to the list in the rule.
 
-- `/` and real files (`/favicon.svg`) → 200.
-- Page paths (`/study`, `/study/default/flashcards`, `/todo`) → 301 to the same path with a trailing slash, then the app's `index.html` with HTTP status **404**. The app loads in a browser, and a query string such as `?code=…&state=…` survives the redirect, but the status is wrong.
-- A missing file (`/scores/<name>.pdf`) → `index.html` with status 404, so the PDF viewer receives HTML. The score PDFs are not deployed (`public/scores/` is gitignored) — see Ticket 15.
+Until 2026-11-21 the rule was `/<*>` → `/index.html` with type `404-200`, which answered page paths with a 301 to a trailing slash and then the app with status 404.
 
-Ticket 13 should replace the rule with the standard single-page-app rewrite (type `200`) that sends only extension-less paths to `/index.html`, so page paths return 200 without a redirect and missing files return a real 404.
+### Settings for the built site
+
+The app reads `VITE_API_URL`, `VITE_COGNITO_DOMAIN` and `VITE_COGNITO_CLIENT_ID`. They are public values, committed in `.env.production` (and `.env.development` for local work), so Amplify needs no environment variables. Sign-in returns to `/todo` on whichever origin served the page; the allowed origins are `siteOrigins` in `bin/app.ts`.
