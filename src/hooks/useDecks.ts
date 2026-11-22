@@ -1,5 +1,7 @@
 import { useCallback, useMemo, useSyncExternalStore } from 'react'
 import { ALL_TERMS, type Term } from '../data/terms'
+import { DEADLOCK_TERMS } from '../data/deadlock'
+import { POKEMON_TYPE_TERMS } from '../data/pokemonTypes'
 import { readDecks, subscribeDecks, writeDecks, type Deck } from './deckStore'
 import { deckSync, type SyncStatus } from './deckSync'
 import { removeProgress } from './progressStore'
@@ -12,6 +14,33 @@ export const DEFAULT_DECK: Deck = {
   name: 'Music Theory',
   terms: ALL_TERMS,
 }
+
+export const POKEMON_TYPES_DECK: Deck = {
+  id: 'pokemon-types',
+  name: 'Pokémon Type Matchups',
+  terms: POKEMON_TYPE_TERMS,
+  front: 'definition',
+}
+
+/**
+ * Decks that ship with the app. They are never stored per user or sent to the
+ * API; only a user's progress on them is saved.
+ */
+export const DEADLOCK_DECK: Deck = {
+  id: 'deadlock',
+  name: 'Deadlock',
+  terms: DEADLOCK_TERMS,
+  front: 'definition',
+}
+
+export const BUILT_IN_DECKS: readonly (Deck & { icon: string })[] = [
+  { ...DEFAULT_DECK, icon: '🎵' },
+  { ...POKEMON_TYPES_DECK, icon: '⚡' },
+  { ...DEADLOCK_DECK, icon: '🕵️' },
+]
+
+export const findBuiltInDeck = (deckId: string) => BUILT_IN_DECKS.find(d => d.id === deckId)
+export const isBuiltInDeck = (deckId: string) => findBuiltInDeck(deckId) !== undefined
 
 export function filterByCategory(terms: Term[], category: string): Term[] {
   if (category === 'all') return terms
@@ -55,7 +84,7 @@ export function useDecks() {
 export function useDeckById(deckId: string): Deck {
   const decks = useSyncExternalStore(subscribeDecks, readDecks)
   return useMemo(
-    () => (deckId === 'default' ? DEFAULT_DECK : decks.find(d => d.id === deckId) ?? DEFAULT_DECK),
+    () => findBuiltInDeck(deckId) ?? decks.find(d => d.id === deckId) ?? DEFAULT_DECK,
     [deckId, decks],
   )
 }

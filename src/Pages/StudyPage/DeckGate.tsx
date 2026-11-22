@@ -3,7 +3,7 @@ import { useParams } from 'react-router'
 import { Text, VStack } from '@chakra-ui/react'
 import PageContainer from '../../Components/Container'
 import { useAuth } from '../../auth/authContext'
-import { useDecks, useDeckSyncStatus } from '../../hooks/useDecks'
+import { isBuiltInDeck, useDecks, useDeckSyncStatus } from '../../hooks/useDecks'
 import { progressSync } from '../../hooks/progressSync'
 import { useProgressStatus } from '../../hooks/useStudySession'
 import { colors } from '../../Theme'
@@ -21,7 +21,7 @@ const DeckGate = ({ children }: { children: ReactNode }) => {
 
   const progressStatus = useProgressStatus(deckId ?? 'default')
 
-  const known = !deckId || deckId === 'default' || customDecks.some(d => d.id === deckId)
+  const known = !deckId || isBuiltInDeck(deckId) || customDecks.some(d => d.id === deckId)
   const decksLoading = isSignedIn && (status === 'idle' || status === 'loading')
   // Modes also read saved progress (position, mastered terms) once when they open.
   const progressLoading = isSignedIn && (progressStatus === 'idle' || progressStatus === 'loading')

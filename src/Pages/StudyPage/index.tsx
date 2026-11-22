@@ -3,7 +3,7 @@ import { Box, Flex, Text, Wrap, WrapItem, VStack } from '@chakra-ui/react'
 import { useNavigate } from 'react-router'
 import PageContainer from '../../Components/Container'
 import { colors } from '../../Theme'
-import { useDecks, getDeckCategories, filterByCategory, DEFAULT_DECK, type Deck } from '../../hooks/useDecks'
+import { useDecks, getDeckCategories, filterByCategory, BUILT_IN_DECKS, DEFAULT_DECK, findBuiltInDeck, type Deck } from '../../hooks/useDecks'
 import { deckSync } from '../../hooks/deckSync'
 import { useStudySession } from '../../hooks/useStudySession'
 import { decodeShareLink, encodeShareLink } from '../../utils/shareLink'
@@ -19,15 +19,17 @@ const MODES = [
 
 type ModeKey = typeof MODES[number]['key']
 
+/** The small tag shown beside a deck that ships with the app. */
+const builtInLabel = (deckId: string) => (deckId === 'default' ? 'Default' : 'Built-in')
+
 const StudyHub = () => {
   const navigate = useNavigate()
   const { customDecks, createDeck, updateDeck, deleteDeck } = useDecks()
   const { session, setLastMode, setLastCategory, setLastDeckId, setTermCount, resetSession } = useStudySession()
 
   const selectedDeckId = session.lastDeckId ?? 'default'
-  const selectedDeck = selectedDeckId === 'default'
-    ? DEFAULT_DECK
-    : (customDecks.find(d => d.id === selectedDeckId) ?? DEFAULT_DECK)
+  const builtIn = findBuiltInDeck(selectedDeckId)
+  const selectedDeck = builtIn ?? customDecks.find(d => d.id === selectedDeckId) ?? DEFAULT_DECK
   const selectedMode = (session.lastMode ?? 'flashcards') as ModeKey
   const selectedCat = session.lastCategory ?? 'all'
 
@@ -158,9 +160,9 @@ const StudyHub = () => {
   const maxCount = filteredTerms.length
   const clampedCount = Math.min(Math.max(4, termCount), Math.max(4, maxCount))
 
-  const allDecks: Array<{ id: string; name: string; termCount: number }> = [
-    { id: 'default', name: 'Music Theory', termCount: DEFAULT_DECK.terms.length },
-    ...customDecks.map(d => ({ id: d.id, name: d.name, termCount: d.terms.length })),
+  const allDecks: Array<{ id: string; name: string; termCount: number; icon: string; label: string | null }> = [
+    ...BUILT_IN_DECKS.map(d => ({ id: d.id, name: d.name, termCount: d.terms.length, icon: d.icon, label: builtInLabel(d.id) })),
+    ...customDecks.map(d => ({ id: d.id, name: d.name, termCount: d.terms.length, icon: '📚', label: null })),
   ]
 
   return (
@@ -218,10 +220,10 @@ const StudyHub = () => {
                 _hover={{ borderColor: colors.accentSoft }}
               >
                 <Text fontSize="xs" fontWeight="700" color={colors.textPrimary}>
-                  {d.id === 'default' ? '🎵' : '📚'} {d.name}
+                  {d.icon} {d.name}
                 </Text>
-                {d.id === 'default'
-                  ? <Text fontSize="9px" color={colors.accent}>Default</Text>
+                {d.label
+                  ? <Text fontSize="9px" color={colors.accent}>{d.label}</Text>
                   : <Text fontSize="9px" color={colors.textMuted}>{d.termCount} terms</Text>
                 }
               </Box>
@@ -273,15 +275,15 @@ const StudyHub = () => {
         <Box flex={1} p={{ base: 4, md: 8 }} overflowY="auto">
           <Flex align="center" gap={3} mb={1} flexWrap="wrap">
             <Text fontSize="lg" fontWeight="800" color={colors.textPrimary}>
-              {selectedDeckId === 'default' ? '🎵 Music Theory' : `📚 ${selectedDeck.name}`}
+              {builtIn?.icon ?? '📚'} {selectedDeck.name}
             </Text>
-            {selectedDeckId === 'default' && (
+            {builtIn && (
               <Flex align="center" gap={2}>
-                <Box bg={colors.accentDim} border={`1px solid ${colors.accentDim}`} borderRadius="full" px={2} py="1px" fontSize="9px" color={colors.accent}>Default</Box>
+                <Box bg={colors.accentDim} border={`1px solid ${colors.accentDim}`} borderRadius="full" px={2} py="1px" fontSize="9px" color={colors.accent}>{builtInLabel(builtIn.id)}</Box>
                 <Box as="button" onClick={handleCopyDeck} title="Duplicate deck" bg="none" border={`1px solid ${colors.border}`} borderRadius="md" px={2} py={1} fontSize="sm" color={colors.textMuted} cursor="pointer" _hover={{ color: colors.accent }}>⧉</Box>
               </Flex>
             )}
-            {selectedDeckId !== 'default' && (
+            {!builtIn && (
               <Flex gap={2} ml="auto">
                 <Box as="button" onClick={() => setModalState({ open: true, deck: selectedDeck })} title="Edit deck" bg="none" border={`1px solid ${colors.border}`} borderRadius="md" px={2} py={1} fontSize="sm" color={colors.textMuted} cursor="pointer" _hover={{ color: colors.accent }}>✏</Box>
                 <Box as="button" onClick={handleCopyDeck} title="Duplicate deck" bg="none" border={`1px solid ${colors.border}`} borderRadius="md" px={2} py={1} fontSize="sm" color={colors.textMuted} cursor="pointer" _hover={{ color: colors.accent }}>⧉</Box>

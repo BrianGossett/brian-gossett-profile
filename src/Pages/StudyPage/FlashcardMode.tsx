@@ -21,6 +21,7 @@ const FlashcardMode = () => {
   const { session, markMastered, markMissed, setPosition, setLastMode } = useStudySession()
   const { deckId = 'default' } = useParams<{ deckId: string }>()
   const deck = useDeckById(deckId)
+  const questionFirst = deck.front === 'definition'
   const category = session.lastCategory ?? 'all'
   const [terms, setTerms] = useState(() => filterByCategory(deck.terms, category))
   const savedPos = session.positions.flashcards
@@ -146,7 +147,23 @@ const FlashcardMode = () => {
           position="relative"
           _hover={{ borderColor: colors.accentDim }}
         >
-          {!flipped ? (
+          {questionFirst ? (
+            // Question-and-answer decks: the question is the front, the answer the back.
+            !flipped ? (
+              <>
+                <Text fontSize="xs" textTransform="uppercase" letterSpacing="widest" color={colors.textMuted} mb={5}>
+                  Click to reveal answer
+                </Text>
+                <Text fontSize="xl" fontWeight="800" color={colors.textPrimary} lineHeight="1.4" maxW="480px">{term.definition}</Text>
+                <Text fontSize="xs" color={colors.accent} textTransform="uppercase" letterSpacing="wider" mt={3}>{term.category}</Text>
+              </>
+            ) : (
+              <>
+                <Text fontSize="xs" textTransform="uppercase" letterSpacing="widest" color={colors.accent} mb={5}>Answer</Text>
+                <Text fontSize="xl" fontWeight="800" color={colors.textPrimary} lineHeight="1.5" maxW="480px">{term.term}</Text>
+              </>
+            )
+          ) : !flipped ? (
             <>
               <Text fontSize="xs" textTransform="uppercase" letterSpacing="widest" color={colors.textMuted} mb={5}>
                 Click to reveal definition

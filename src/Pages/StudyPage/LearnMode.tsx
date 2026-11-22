@@ -28,6 +28,8 @@ const LearnMode = () => {
   const { session, recordLearnAnswer, resetLearn, setLastMode } = useStudySession()
   const { deckId = 'default' } = useParams<{ deckId: string }>()
   const deck = useDeckById(deckId)
+  // Question-and-answer decks hold the question in `definition`, so the wording changes.
+  const questionFirst = deck.front === 'definition'
   const category = session.lastCategory ?? 'all'
   const terms = filterByCategory(deck.terms, category)
   // Wrong options come from the whole deck, so a small category still gets plausible choices.
@@ -185,7 +187,9 @@ const LearnMode = () => {
         <Box bg={colors.surface} border={`1px solid ${colors.border}`} borderRadius="xl" p={8} mb={5}>
           <Flex align="center" gap={3} mb={4}>
             <Text fontSize="xs" textTransform="uppercase" letterSpacing="widest" color={colors.accent} fontWeight="700">
-              {q.kind === "choice" ? "Which term is this?" : "Type the term"}
+              {questionFirst
+                ? (q.kind === "choice" ? "Choose the answer" : "Type the answer")
+                : (q.kind === "choice" ? "Which term is this?" : "Type the term")}
             </Text>
             {q.retry && (
               <Box bg={colors.accentDim} borderRadius="full" px={2} py="1px" fontSize="xs" color={colors.accent}>Try again</Box>
@@ -246,7 +250,7 @@ const LearnMode = () => {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 disabled={answered}
-                placeholder="Type the term"
+                placeholder={questionFirst ? "Type the answer" : "Type the term"}
                 aria-label="Your answer"
                 bg={colors.surface}
                 borderColor={answered ? (result.correct ? GREEN : RED) : colors.border}

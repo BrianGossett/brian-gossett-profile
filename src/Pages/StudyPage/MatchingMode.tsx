@@ -65,7 +65,19 @@ const MatchingMode = () => {
     if (selectedTerm !== null) attemptMatch(selectedTerm, id)
   }
 
-  function attemptMatch(termId: number, defId: number) {
+  function attemptMatch(clickedTermId: number, defId: number) {
+    // Two cards can share an answer ("Spirit"). Picking either tile with the right text is a match:
+    // the clicked tile and its twin trade places so the pair lines up.
+    const clicked = items.terms.find(t => t.id === clickedTermId)
+    const partner = items.terms.find(t => t.id === defId)
+    const twin = clickedTermId !== defId && clicked && partner && !partner.matched && clicked.text === partner.text
+    const termId = twin ? defId : clickedTermId
+    if (twin) {
+      setItems(prev => ({
+        ...prev,
+        terms: prev.terms.map(t => t.id === clickedTermId ? { ...t, id: defId } : t.id === defId ? { ...t, id: clickedTermId } : t),
+      }))
+    }
     if (termId === defId) {
       setItems(prev => {
         const nextTerms = prev.terms.map(t => t.id === termId ? { ...t, matched: true } : t)

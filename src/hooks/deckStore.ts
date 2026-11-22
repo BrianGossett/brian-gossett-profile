@@ -4,6 +4,12 @@ export interface Deck {
   id: string
   name: string
   terms: Term[]
+  /**
+   * Which side flashcards show first. Most decks are a term and its definition
+   * (term first); question-and-answer decks put the question in `definition`
+   * and show that first.
+   */
+  front?: 'term' | 'definition'
 }
 
 /**
