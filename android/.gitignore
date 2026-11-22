@@ -1,0 +1,12 @@
+# Build output and local machine files
+.gradle/
+build/
+app/build/
+local.properties
+*.apk
+*.aab
+*.idsig
+
+# The signing key must never be committed.
+*.keystore
+*.jks
