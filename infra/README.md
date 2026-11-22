@@ -120,6 +120,24 @@ The stack's outputs (`UserPoolId`, `UserPoolClientId`, `HostedUiDomain`, `Google
 |---|---|
 | `GET /me` | Returns the caller's profile (`USER#<userId>` / `PROFILE`), creating it from the token on first call |
 
+## Score PDFs (`ProfileFiles`)
+
+The Exam Prep score PDFs (78 files, about 874 MB) are too big for git, so `public/scores/` is gitignored and the built site reads them from an S3 bucket instead. The site itself is still hosted on Amplify; there is no CloudFront in front of the bucket.
+
+- Only `scores/*` is publicly readable, over HTTPS. Nobody can list the bucket or write to it without AWS credentials.
+- The bucket is retained if the stack is deleted.
+- The app builds each link from `VITE_SCORES_URL` (set in `.env.production`, from the stack's `ScoresUrl` output). When it is unset, as in local development, the app uses the files in `public/scores/`.
+- Cost: storage is about 2 cents a month. Downloads are free up to 100 GB a month across the account, then about 9 cents per GB.
+
+Deploy from `infra/`, then upload from the repo root. The upload is safe to repeat: it only sends new or changed files.
+
+```bash
+npx cdk deploy ProfileFiles --profile Gossett-Claude
+aws s3 sync public/scores s3://<BucketName output>/scores --content-type application/pdf --profile Gossett-Claude --region us-east-2
+```
+
+To add a score: put the PDF in `public/scores/`, add it to `src/data/scores.ts`, and run the upload again.
+
 ## Hosting (AWS Amplify)
 
 Recorded 2026-11-21 from the Amplify console and `aws amplify get-app` / `list-branches` / `list-domain-associations`.
