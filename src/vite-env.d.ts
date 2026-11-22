@@ -7,6 +7,8 @@ interface ImportMetaEnv {
   readonly VITE_COGNITO_DOMAIN?: string
   /** Cognito web client ID. */
   readonly VITE_COGNITO_CLIENT_ID?: string
+  /** Where the score PDFs are stored, ending in /scores. Unset: served from the site itself. */
+  readonly VITE_SCORES_URL?: string
 }
 
 interface ImportMeta {

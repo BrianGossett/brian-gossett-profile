@@ -1,0 +1,52 @@
+{
+  "packageId": "org.briangossett.app",
+  "host": "briangossett.org",
+  "name": "BG To-do",
+  "launcherName": "BG To-do",
+  "display": "standalone",
+  "themeColor": "#0F0F14",
+  "themeColorDark": "#000000",
+  "navigationColor": "#000000",
+  "navigationColorDark": "#000000",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#0F0F14",
+  "enableNotifications": false,
+  "startUrl": "/todo",
+  "iconUrl": "https://briangossett.org/pwa-512.png",
+  "maskableIconUrl": "https://briangossett.org/pwa-maskable-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./bg-todo.keystore",
+    "alias": "bg-todo"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-core",
+  "webManifestUrl": "https://briangossett.org/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://briangossett.org/",
+  "minSdkVersion": 24,
+  "orientation": "default",
+  "fingerprints": [
+    {
+      "name": "bg-todo",
+      "value": "92:E4:C7:DB:1B:35:B0:B7:CF:11:29:05:8A:59:33:A1:E4:46:A7:DA:B8:62:2E:20:AA:9A:81:92:B5:A7:E1:1B"
+    }
+  ],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "protocolHandlers": [],
+  "fileHandlers": [],
+  "launchHandlerClientMode": "",
+  "displayOverride": [],
+  "appVersion": "1.0.0"
+}
