@@ -147,6 +147,14 @@ export function useStudySession() {
     updateProgress(prev => ({ ...prev, learn: {} }))
   }, [updateProgress])
 
+  /** Matching: keeps `seconds` as the deck's best time for a round of `pairs`, if it beats the old one. */
+  const recordMatchTime = useCallback((pairs: number, seconds: number) => {
+    updateProgress(prev => {
+      const best = prev.bestMatch[pairs]
+      return best !== undefined && best <= seconds ? prev : { ...prev, bestMatch: { ...prev.bestMatch, [pairs]: seconds } }
+    })
+  }, [updateProgress])
+
   /** Stars or unstars a term in the current deck. */
   const toggleStar = useCallback((id: number) => {
     updateProgress(prev => ({
@@ -194,6 +202,7 @@ export function useStudySession() {
     resetLearn,
     toggleStar,
     setFlashcardFront,
+    recordMatchTime,
   }
 }
 

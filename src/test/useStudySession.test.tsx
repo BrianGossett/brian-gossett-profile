@@ -35,9 +35,10 @@ describe('useStudySession', () => {
       positions: { flashcards: 0, quiz: 0, type: 0, match: 0 },
       learn: {},
       starred: [],
+      bestMatch: {},
     })
     expect(Object.keys(result.current).sort()).toEqual([
-      'markMastered', 'markMissed', 'recordLearnAnswer', 'resetLearn', 'resetSession', 'session', 'setFlashcardFront', 'setLastCategory', 'setLastDeckId',
+      'markMastered', 'markMissed', 'recordLearnAnswer', 'recordMatchTime', 'resetLearn', 'resetSession', 'session', 'setFlashcardFront', 'setLastCategory', 'setLastDeckId',
       'setLastMode', 'setPosition', 'setTermCount', 'toggleStar', 'weakTerms',
     ])
   })

@@ -15,6 +15,8 @@ export interface DeckProgress {
   starred: number[]
   /** Which side flashcards show first, if the user has chosen. Otherwise the deck decides. */
   flashcardFront?: 'term' | 'definition'
+  /** Matching: the best round time in seconds, for each number of pairs in a round. */
+  bestMatch: Record<number, number>
 }
 
 export const PROGRESS_KEY = 'study-deck-progress'
@@ -27,6 +29,7 @@ export const EMPTY_PROGRESS: DeckProgress = Object.freeze({
   positions: { flashcards: 0, quiz: 0, type: 0, match: 0 },
   learn: {},
   starred: [],
+  bestMatch: {},
 }) as DeckProgress
 
 type ProgressMap = Record<string, DeckProgress>
@@ -45,6 +48,10 @@ export function normalizeProgress(raw: unknown): DeckProgress {
   const positions = (p.positions ?? {}) as Partial<DeckProgress['positions']>
   const missedCounts: Record<number, number> = {}
   for (const [id, n] of Object.entries(p.missedCounts ?? {})) if (count(n) > 0) missedCounts[Number(id)] = count(n)
+  const bestMatch: Record<number, number> = {}
+  for (const [pairs, t] of Object.entries(p.bestMatch ?? {})) {
+    if (typeof t === 'number' && Number.isFinite(t) && t > 0) bestMatch[Number(pairs)] = t
+  }
   const learn: Record<number, number> = {}
   for (const [id, n] of Object.entries(p.learn ?? {})) if (count(n) > 0) learn[Number(id)] = Math.min(2, count(n))
   return {
@@ -60,6 +67,7 @@ export function normalizeProgress(raw: unknown): DeckProgress {
     },
     learn,
     starred: [...new Set(numbers(p.starred))],
+    bestMatch,
     ...(p.flashcardFront === 'term' || p.flashcardFront === 'definition' ? { flashcardFront: p.flashcardFront } : {}),
   }
 }
@@ -127,6 +135,8 @@ export function mergeProgress(other: DeckProgress, preferred: DeckProgress): Dec
   }
   const learn: Record<number, number> = { ...other.learn }
   for (const [id, n] of Object.entries(preferred.learn)) learn[Number(id)] = Math.max(learn[Number(id)] ?? 0, n)
+  const bestMatch: Record<number, number> = { ...other.bestMatch }
+  for (const [pairs, t] of Object.entries(preferred.bestMatch)) bestMatch[Number(pairs)] = Math.min(bestMatch[Number(pairs)] ?? Infinity, t)
   return {
     mastered,
     missed: [...new Set([...other.missed, ...preferred.missed])].filter(id => !mastered.includes(id)),
@@ -135,6 +145,7 @@ export function mergeProgress(other: DeckProgress, preferred: DeckProgress): Dec
     positions: preferred.positions,
     learn,
     starred: [...new Set([...other.starred, ...preferred.starred])],
+    bestMatch,
     ...(preferred.flashcardFront ?? other.flashcardFront ? { flashcardFront: preferred.flashcardFront ?? other.flashcardFront } : {}),
   }
 }

@@ -7,6 +7,7 @@ import { type Term } from "../../data/terms"
 import { useDeckById, filterByCategory } from "../../hooks/useDecks"
 import { useStudySession } from "../../hooks/useStudySession"
 import { shuffle } from "../../utils/studyQuestions"
+import { WRONG_MATCH_PENALTY_SECONDS, currentTime, formatSeconds, isNewBest, roundTime } from "../../utils/matchTimer"
 
 const ROUND_SIZE = 8
 
@@ -27,7 +28,7 @@ function buildRound(terms: Term[]): { terms: MatchItem[]; defs: MatchItem[] } {
 
 const MatchingMode = () => {
   const navigate = useNavigate()
-  const { session, markMastered, setPosition, setLastMode } = useStudySession()
+  const { session, markMastered, setPosition, setLastMode, recordMatchTime } = useStudySession()
   const { deckId = 'default' } = useParams<{ deckId: string }>()
   const deck = useDeckById(deckId)
   const category = session.lastCategory ?? 'all'
@@ -41,6 +42,12 @@ const MatchingMode = () => {
   const [selectedDef, setSelectedDef] = useState<number | null>(null)
   const [wrongAttempts, setWrongAttempts] = useState(0)
   const [roundComplete, setRoundComplete] = useState(false)
+  // The clock starts on the first tile clicked, not when the round appears.
+  const [startedAt, setStartedAt] = useState<number | null>(null)
+  const [now, setNow] = useState(0)
+  /** The finished round's time, and whether it beat the deck's best for this many pairs. */
+  const [finished, setFinished] = useState<{ time: number; newBest: boolean; previousBest?: number } | null>(null)
+  const [penaltyFlash, setPenaltyFlash] = useState(false)
 
   useEffect(() => { setLastMode("match") }, [setLastMode])
 
@@ -53,19 +60,37 @@ const MatchingMode = () => {
 
   const isFlashing = items.terms.some(t => t.wrongFlash) || items.defs.some(d => d.wrongFlash)
 
+  // Tick the clock while a round is being timed.
+  useEffect(() => {
+    if (startedAt === null || finished) return
+    const id = setInterval(() => setNow(currentTime()), 100)
+    return () => clearInterval(id)
+  }, [startedAt, finished])
+
+  /** Starts the clock if this is the first click of the round. Returns when the round started. */
+  function ensureStarted(): number {
+    if (startedAt !== null) return startedAt
+    const t = currentTime()
+    setStartedAt(t)
+    setNow(t)
+    return t
+  }
+
   function selectTerm(id: number) {
     if (isFlashing || items.terms.find(t => t.id === id)?.matched) return
+    const started = ensureStarted()
     setSelectedTerm(id)
-    if (selectedDef !== null) attemptMatch(id, selectedDef)
+    if (selectedDef !== null) attemptMatch(id, selectedDef, started)
   }
 
   function selectDef(id: number) {
     if (isFlashing || items.defs.find(d => d.id === id)?.matched) return
+    const started = ensureStarted()
     setSelectedDef(id)
-    if (selectedTerm !== null) attemptMatch(selectedTerm, id)
+    if (selectedTerm !== null) attemptMatch(selectedTerm, id, started)
   }
 
-  function attemptMatch(clickedTermId: number, defId: number) {
+  function attemptMatch(clickedTermId: number, defId: number, started: number) {
     // Two cards can share an answer ("Spirit"). Picking either tile with the right text is a match:
     // the clicked tile and its twin trade places so the pair lines up.
     const clicked = items.terms.find(t => t.id === clickedTermId)
@@ -89,8 +114,18 @@ const MatchingMode = () => {
       markMastered(termId)
       setSelectedTerm(null)
       setSelectedDef(null)
+      // The last pair stops the clock.
+      if (items.terms.filter(t => !t.matched).length === 1) {
+        const time = roundTime(started, currentTime(), wrongAttempts)
+        const pairs = items.terms.length
+        const previousBest = session.bestMatch[pairs]
+        setFinished({ time, newBest: isNewBest(previousBest, time), previousBest })
+        recordMatchTime(pairs, time)
+      }
     } else {
       setWrongAttempts(w => w + 1)
+      setPenaltyFlash(true)
+      setTimeout(() => setPenaltyFlash(false), 900)
       setItems(prev => ({
         terms: prev.terms.map(t => t.id === termId ? { ...t, wrongFlash: true } : t),
         defs:  prev.defs.map(d => d.id === defId   ? { ...d, wrongFlash: true } : d),
@@ -116,6 +151,9 @@ const MatchingMode = () => {
     setSelectedDef(null)
     setWrongAttempts(0)
     setRoundComplete(false)
+    setStartedAt(null)
+    setFinished(null)
+    setPenaltyFlash(false)
   }
 
   const matched = items.terms.filter(t => t.matched).length
@@ -123,6 +161,8 @@ const MatchingMode = () => {
   const progress = total > 0 ? (matched / total) * 100 : 0
   const totalRounds = Math.ceil(shuffledAll.length / ROUND_SIZE)
   const isLastRound = (roundIndex + 1) >= totalRounds
+  const elapsed = finished ? finished.time : startedAt === null ? 0 : roundTime(startedAt, now, wrongAttempts)
+  const best = session.bestMatch[total]
 
   if (roundTerms.length === 0) {
     return (
@@ -152,18 +192,36 @@ const MatchingMode = () => {
           <Box flex={1} h="6px" bg={colors.border} borderRadius="full" overflow="hidden">
             <Box h="100%" w={`${progress}%`} bg={colors.accent} borderRadius="full" style={{ transition: "width 0.3s" }} />
           </Box>
+          <Text role="timer" aria-label="Round time" fontSize="sm" fontWeight="800" fontFamily="mono" color={penaltyFlash ? "#ff6b6b" : colors.textPrimary} whiteSpace="nowrap">
+            {formatSeconds(elapsed)}
+          </Text>
+          {penaltyFlash && <Text fontSize="xs" fontWeight="800" color="#ff6b6b" whiteSpace="nowrap">+{WRONG_MATCH_PENALTY_SECONDS}s</Text>}
         </Flex>
 
         <Text fontSize="xs" color={colors.textMuted} mb={6}>
-          Click a term, then click its definition. Wrong pairs flash red.
+          Click a term, then click its definition. The clock starts on your first click, and each wrong pair adds {WRONG_MATCH_PENALTY_SECONDS} seconds.
+          {best !== undefined && !roundComplete && <> Best for {total} pairs: {formatSeconds(best)}.</>}
         </Text>
 
         {roundComplete ? (
           <Box bg="#0d2a1e" border="1px solid #2cb67d40" borderRadius="xl" p={8} textAlign="center" mb={6}>
             <Text fontSize="2xl" fontWeight="800" color="#2cb67d" mb={2}>Round Complete! 🎉</Text>
-            <Text fontSize="sm" color={colors.textMuted} mb={6}>
+            {finished && (
+              <Text fontSize="3xl" fontWeight="800" fontFamily="mono" color={colors.textPrimary} mb={1}>{formatSeconds(finished.time)}</Text>
+            )}
+            <Text fontSize="sm" color={colors.textMuted} mb={2}>
               {total} / {total} matched · {wrongAttempts} wrong {wrongAttempts === 1 ? "attempt" : "attempts"}
+              {wrongAttempts > 0 && <> (+{wrongAttempts * WRONG_MATCH_PENALTY_SECONDS}s)</>}
             </Text>
+            {finished && (
+              <Text fontSize="sm" color={finished.newBest ? "#ffd93d" : colors.textMuted} fontWeight={finished.newBest ? "800" : "400"} mb={6}>
+                {finished.newBest
+                  ? (finished.previousBest === undefined
+                      ? `First time for ${total} pairs. That's your best so far.`
+                      : `New best for ${total} pairs! It was ${formatSeconds(finished.previousBest)}.`)
+                  : `Best for ${total} pairs: ${formatSeconds(finished.previousBest!)}`}
+              </Text>
+            )}
             {isLastRound ? (
               <ActionBtn onClick={() => navigate("/study")}>All Done — Back to Hub</ActionBtn>
             ) : (
@@ -206,6 +264,7 @@ const MatchingMode = () => {
 
             <Text textAlign="center" fontSize="xs" color={colors.border}>
               {wrongAttempts} wrong {wrongAttempts === 1 ? "attempt" : "attempts"} this round
+              {wrongAttempts > 0 && <> · +{wrongAttempts * WRONG_MATCH_PENALTY_SECONDS}s</>}
             </Text>
           </>
         )}
