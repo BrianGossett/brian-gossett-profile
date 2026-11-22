@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { Term } from '../data/terms'
-import { ROUND_SIZE, answer, createRound, currentQuestion, isComplete, isLearned, isRoundOver, kindFor, learnProgress, type Round, type Stages } from '../utils/learn'
+import { ROUND_SIZE, answer, buckets, createRound, currentQuestion, isComplete, isLearned, isRoundOver, kindFor, learnProgress, selectSession, trickiest, type Round, type Stages } from '../utils/learn'
 import { getDistractors, isMatch, shuffle } from '../utils/studyQuestions'
 
 const makeTerms = (n: number, category = 'General'): Term[] =>
@@ -193,5 +193,74 @@ describe('Learn rounds', () => {
   it('treats stages outside 0 to 2 safely', () => {
     const terms = makeTerms(2)
     expect(learnProgress(terms, { 1: 99, 2: -5 })).toEqual({ correct: 2, total: 4 })
+  })
+
+  it('sends a term back to multiple choice after a wrong typed answer', () => {
+    const terms = makeTerms(3)
+    const stages: Stages = { 1: 1, 2: 1, 3: 1 }
+    const round = createRound(terms, stages, terms, seeded())!
+    const missedId = currentQuestion(round)!.term.id
+    expect(currentQuestion(round)!.kind).toBe('typed')
+
+    const after = answer(round, stages, false, terms, seeded(3))
+    expect(after.stages[missedId]).toBe(0)
+    const again = after.round.queue[after.round.queue.length - 1]
+    expect(again).toMatchObject({ kind: 'choice', retry: true })
+    expect(again.term.id).toBe(missedId)
+    expect(again.options.map(o => o.id)).toContain(missedId)
+  })
+
+  it('needs multiple choice and then typing again to learn a term dropped back', () => {
+    const terms = makeTerms(1)
+    let state = { round: createRound(terms, { 1: 1 }, terms, seeded())!, stages: { 1: 1 } as Stages }
+    state = answer(state.round, state.stages, false, terms, seeded()) // typed, wrong
+    expect(currentQuestion(state.round)!.kind).toBe('choice')
+    state = answer(state.round, state.stages, true, terms, seeded())
+    expect(state.stages[1]).toBe(1)
+    expect(isRoundOver(state.round)).toBe(true)
+    const next = createRound(terms, state.stages, terms, seeded())!
+    expect(currentQuestion(next)!.kind).toBe('typed')
+  })
+
+  it('counts misses per term in a round', () => {
+    const terms = makeTerms(3)
+    let state = { round: createRound(terms, {}, terms, seeded())!, stages: {} as Stages }
+    const first = currentQuestion(state.round)!.term.id
+    state = answer(state.round, state.stages, false, terms, seeded())
+    const second = currentQuestion(state.round)!.term.id
+    state = answer(state.round, state.stages, false, terms, seeded())
+    state = answer(state.round, state.stages, true, terms, seeded())
+    state = answer(state.round, state.stages, false, terms, seeded()) // `first` again
+    expect(state.round.misses[first]).toBe(2)
+    expect(state.round.misses[second]).toBe(1)
+    expect(createRound(terms, {}, terms, seeded())!.misses).toEqual({})
+  })
+})
+
+describe('Learn buckets, sessions and trickiest cards', () => {
+  const terms = makeTerms(25)
+
+  it('counts terms at each stage, always adding up to the total', () => {
+    expect(buckets(terms, {})).toEqual({ unstarted: 25, familiar: 0, mastered: 0 })
+    const stages: Stages = { 1: 1, 2: 1, 3: 2, 4: 2, 5: 2, 6: 0, 7: 99 }
+    const count = buckets(terms, stages)
+    expect(count).toEqual({ unstarted: 19, familiar: 2, mastered: 4 })
+    expect(count.unstarted + count.familiar + count.mastered).toBe(25)
+  })
+
+  it('selects the first N terms not yet learned', () => {
+    expect(selectSession(terms, {}, 10).map(t => t.id)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+    expect(selectSession(terms, { 1: 2, 2: 2, 3: 1 }, 3).map(t => t.id)).toEqual([3, 4, 5])
+    expect(selectSession(terms, {}, 'all')).toHaveLength(25)
+    expect(selectSession(terms, { 1: 2 }, 'all')).toHaveLength(24)
+    expect(selectSession(terms.slice(0, 4), {}, 10)).toHaveLength(4)
+    expect(selectSession(terms, Object.fromEntries(terms.map(t => [t.id, 2])), 10)).toEqual([])
+  })
+
+  it('lists the most-missed terms first and leaves out clean ones', () => {
+    const list = trickiest(terms, { 3: 1, 7: 4, 12: 2 })
+    expect(list.map(e => [e.term.id, e.misses])).toEqual([[7, 4], [12, 2], [3, 1]])
+    expect(trickiest(terms, {})).toEqual([])
+    expect(trickiest(terms, Object.fromEntries(terms.map(t => [t.id, t.id])), 8)).toHaveLength(8)
   })
 })

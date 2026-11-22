@@ -121,6 +121,15 @@ describe('useStudySession', () => {
     expect(result.current.session.learn).toEqual({ 1: 2 })
   })
 
+  it('Learn: a wrong typed answer sends the term back to the start', () => {
+    const { result } = renderHook(() => useStudySession(), { wrapper: onDeck('deck-a') })
+    act(() => { result.current.recordLearnAnswer(1, true) })
+    act(() => { result.current.recordLearnAnswer(2, true) })
+    act(() => { result.current.recordLearnAnswer(1, false, true) })
+    expect(result.current.session).toMatchObject({ learn: { 2: 1 }, missed: [1], streak: 0 })
+    expect(result.current.session.learn[1]).toBeUndefined()
+  })
+
   it('Learn: a wrong answer is a miss and does not move the term forward', () => {
     const { result } = renderHook(() => useStudySession(), { wrapper: onDeck('deck-a') })
     act(() => { result.current.recordLearnAnswer(1, true) })

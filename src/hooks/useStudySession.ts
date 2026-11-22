@@ -118,13 +118,18 @@ export function useStudySession() {
 
   /**
    * Learn mode: records one answer. A correct answer moves the term a step towards
-   * learned (two steps), and a learned term is also mastered; a wrong answer is a miss.
+   * learned (two steps), and a learned term is also mastered; a wrong answer is a
+   * miss, and a wrong typed answer also sends the term back to the start.
    */
-  const recordLearnAnswer = useCallback((id: number, correct: boolean) => {
+  const recordLearnAnswer = useCallback((id: number, correct: boolean, typed = false) => {
     updateProgress(prev => {
       if (!correct) {
+        // A wrong typed answer sends the term back to multiple choice.
+        const { [id]: _stage, ...restOfLearn } = prev.learn
+        void _stage
         return {
           ...prev,
+          learn: typed ? restOfLearn : prev.learn,
           missed: prev.missed.includes(id) ? prev.missed : [...prev.missed, id],
           missedCounts: { ...prev.missedCounts, [id]: (prev.missedCounts[id] ?? 0) + 1 },
           streak: 0,

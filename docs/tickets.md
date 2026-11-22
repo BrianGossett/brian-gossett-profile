@@ -459,7 +459,7 @@ Matching counts wrong attempts but isn't timed. Add, as in Quizlet's Match (revi
 - The round's final time on the round-complete screen
 - The best time for the deck, saved with the deck's progress, with a "new best" note when beaten
 
-**Open — check in before building:** how many seconds a wrong match adds, and whether the best time is per round of 8 or for a whole game.
+**Decided 2026-11-21:** a wrong match adds 5 seconds, and the best time is per round.
 
 Files: `src/Pages/StudyPage/MatchingMode.tsx`, `src/hooks/progressStore.ts`, tests in `src/test/`.
 
@@ -539,7 +539,7 @@ Keep Learn's rules from Ticket 18 (rounds of 7, two correct answers per term, mi
 - **Trickiest cards:** the finish screen lists the terms missed most, with their answers
 - **Live preview for list answers** (Ticket 23): as the user types, show which items were recognised
 
-**Open — check in before building:** whether a wrong typed answer should also drop the term back to multiple choice, as the trainer does. Ticket 18 keeps the term at its current stage.
+**Decided 2026-11-21:** a wrong typed answer drops the term back to multiple choice, as the trainer does.
 
 Files: `src/Pages/StudyPage/LearnMode.tsx`, `src/utils/learn.ts`, tests in `src/test/`.
 

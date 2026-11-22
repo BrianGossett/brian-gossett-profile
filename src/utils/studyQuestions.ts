@@ -67,24 +67,45 @@ export function listItems(answer: string): string[] | null {
 /** Splits a list on commas, semicolons, slashes, "&" and the word "and". */
 const splitList = (text: string) => text.split(/[,;/&]+|\band\b/i)
 
+export interface ListAnswer {
+  /** The expected items the typed answer contains, as written in the answer. */
+  hits: string[]
+  /** The expected items it is missing. */
+  missing: string[]
+  /** Things typed that are not on the list, or that repeat an item. */
+  extras: string[]
+}
+
 /**
- * Checks a typed answer against a list answer: every item, nothing extra, in
- * any order. A one-letter typo in an item of four or more letters is forgiven.
+ * Reads a typed answer against a list answer such as "Grass, Ice, Bug, Steel".
+ * Order doesn't matter, and a one-letter typo in an item of four or more
+ * letters is forgiven. Returns null when the answer is not a list.
  */
-function isListMatch(input: string, answer: string, expected: string[]): boolean {
+export function parseListAnswer(input: string, answer: string): ListAnswer | null {
+  if (!listItems(answer)) return null
+  const expected = splitList(answer).map(item => item.trim()).filter(item => normalize(item) !== '')
   // Split on commas; if every expected item is one word, spaces separate items too.
-  const oneWordItems = splitList(answer).every(item => !/\s/.test(item.trim()))
+  const oneWordItems = expected.every(item => !/\s/.test(item))
   const typed = (oneWordItems ? splitList(input).flatMap(part => part.split(/\s+/)) : splitList(input))
-    .map(normalize)
-    .filter(Boolean)
+    .map(part => part.trim())
+    .filter(part => normalize(part) !== '')
   const remaining = [...expected]
+  const hits: string[] = []
+  const extras: string[] = []
   for (const word of typed) {
-    let index = remaining.indexOf(word)
-    if (index === -1) index = remaining.findIndex(item => item.length >= 4 && editDistance(word, item) === 1)
-    if (index === -1) return false // not on the list, or given twice
-    remaining.splice(index, 1)
+    const key = normalize(word)
+    let index = remaining.findIndex(item => normalize(item) === key)
+    if (index === -1) index = remaining.findIndex(item => normalize(item).length >= 4 && editDistance(key, normalize(item)) === 1)
+    if (index === -1) extras.push(word) // not on the list, or given twice
+    else hits.push(remaining.splice(index, 1)[0])
   }
-  return remaining.length === 0
+  return { hits, missing: remaining, extras }
+}
+
+/** A typed list answer is right when it has every item and nothing extra. */
+function isListMatch(input: string, answer: string): boolean {
+  const parsed = parseListAnswer(input, answer)
+  return parsed !== null && parsed.missing.length === 0 && parsed.extras.length === 0
 }
 
 /**
@@ -93,8 +114,7 @@ function isListMatch(input: string, answer: string, expected: string[]): boolean
  * items, in any order.
  */
 export function isMatch(input: string, term: Term): boolean {
-  const items = listItems(term.term)
-  if (items) return isListMatch(input, term.term, items)
+  if (listItems(term.term)) return isListMatch(input, term.term)
   const n = normalize(input)
   const t = normalize(term.term)
   if (n === t) return true
