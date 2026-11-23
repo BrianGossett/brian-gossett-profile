@@ -148,3 +148,17 @@ describe('signing out', () => {
     expect(Object.fromEntries(url.searchParams)).toEqual({ client_id: 'client-123', logout_uri: `${origin}/todo` })
   })
 })
+
+describe('signInErrorMessage', () => {
+  it('unwraps a refusal from the invitation check', async () => {
+    const { signInErrorMessage } = await import('../auth/signIn')
+    expect(signInErrorMessage('PreSignUp failed with error Sign-in is by invitation only. Ask the site owner to add your email address.. '))
+      .toBe('Sign-in is by invitation only. Ask the site owner to add your email address.')
+    expect(signInErrorMessage('PreSignUp failed with error Sign-in is by invitation only.'))
+      .toBe('Sign-in is by invitation only.')
+  })
+  it('leaves other errors as they are', async () => {
+    const { signInErrorMessage } = await import('../auth/signIn')
+    expect(signInErrorMessage('User cancelled')).toBe('User cancelled')
+  })
+})

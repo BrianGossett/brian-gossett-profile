@@ -550,3 +550,60 @@ Files: `src/Pages/StudyPage/LearnMode.tsx`, `src/utils/learn.ts`, tests in `src/
 - The round recap shows a miss count per term
 - The finish screen lists the most-missed terms, or says there were no misses
 - Unit tests cover the bucket counts, session selection and miss tracking; the component test covers retype-to-continue
+
+---
+
+## Ticket 25 — AWS budget alert
+
+Sign-in is open on the live site and the score PDFs are public, so both could cost money if abused. Add a monthly AWS budget for the whole account that emails the owner before the bill is a surprise.
+
+- A new CDK stack, `ProfileBudget`, with one monthly cost budget of **$5**
+- Email alerts at 80% of actual spend and at 100% of forecast spend
+- The email address is passed at deploy time and is not committed (the repo is public)
+
+Files: `infra/lib/budget-stack.ts`, `infra/bin/app.ts`, `infra/test/`, `infra/README.md`.
+
+**Acceptance criteria:**
+- `cdk synth` produces one budget of $5 a month with the two alerts
+- No email address or account ID appears in the repo
+- The stack is deployed and the owner has confirmed the alert subscription
+- CDK assertion tests cover the limit and the alert thresholds
+
+---
+
+## Ticket 26 — Run the checks on every pull request
+
+The repo has no CI, so a merge to `master` deploys whatever the PR contains. Add a GitHub Actions workflow that runs on pull requests and on pushes to `master`.
+
+- App: `npm ci`, lint, tests, build, with the Node version from `.nvmrc`
+- API: tests and type-check
+- Infra: tests and type-check (needs the API's packages, because the stack bundles the Lambda)
+- No AWS credentials and no deploys in CI
+
+Files: `.github/workflows/ci.yml`, `README.md` or `infra/README.md`.
+
+**Acceptance criteria:**
+- Opening a PR starts the workflow, and it passes on this PR
+- A failing test or lint error fails the workflow
+- The workflow uses no secrets
+
+---
+
+## Ticket 27 — Only invited people can sign in
+
+Any Google account can currently sign in and store data. Limit new sign-ins to a list of email addresses the owner controls.
+
+- A Cognito pre-sign-up check refuses a first-time sign-in unless the Google account's email is on the list
+- The list is kept in a Parameter Store value (`/profile/allowed-emails`, comma-separated), not in the repo, and can be changed without a deploy
+- If the list is missing or empty, new sign-ups are refused (people who already have an account are not affected)
+- The app shows a clear message when a sign-in is refused
+
+Files: `api/src/preSignUp.ts`, `api/test/`, `infra/lib/auth-stack.ts`, `infra/test/auth-stack.test.ts`, `infra/README.md`, `src/auth/signIn.ts` if the message needs it.
+
+**Acceptance criteria:**
+- A new Google account whose email is not on the list cannot sign in, and sees why
+- An email on the list (any letter case) can sign in
+- Existing accounts keep working
+- Changing the list takes effect within a few minutes with no deploy
+- No email address appears in the repo
+- Unit tests cover the check; a CDK assertion covers the trigger and its permission to read the list

@@ -83,7 +83,7 @@ export async function completeSignIn(search: string, deps: Deps = {}): Promise<s
   sessionStorage.removeItem(PENDING_KEY)
 
   const error = params.get('error')
-  if (error) throw new AuthError(params.get('error_description') ?? error)
+  if (error) throw new AuthError(signInErrorMessage(params.get('error_description') ?? error))
 
   const pending = parsePending(raw)
   const code = params.get('code')
@@ -113,4 +113,13 @@ export function signOut(deps: Deps = {}): void {
   ;(deps.tokens ?? tokenManager).set(null)
   const params = new URLSearchParams({ client_id: config.clientId, logout_uri: redirectUri() })
   ;(deps.redirect ?? (u => window.location.assign(u)))(`${config.cognitoDomain}/logout?${params}`)
+}
+
+/**
+ * Cognito wraps a refusal from the invitation check as
+ * "PreSignUp failed with error <message>." Show just the message.
+ */
+export function signInErrorMessage(description: string): string {
+  const match = /PreSignUp failed with error (.+?)[.\s]*$/.exec(description)
+  return match ? `${match[1]}.` : description
 }

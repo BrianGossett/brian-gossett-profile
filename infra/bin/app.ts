@@ -1,6 +1,7 @@
 import { App } from 'aws-cdk-lib'
 import { ApiStack } from '../lib/api-stack'
 import { AuthStack } from '../lib/auth-stack'
+import { BudgetStack } from '../lib/budget-stack'
 import { DataStack } from '../lib/data-stack'
 import { FilesStack } from '../lib/files-stack'
 
@@ -35,5 +36,9 @@ new ApiStack(app, 'ProfileApi', {
 
 // Score PDFs for Exam Prep. Independent of the other stacks.
 new FilesStack(app, 'ProfileFiles', { env })
+
+// A monthly cost alert for the whole account. Deployed with an email address:
+// see infra/README.md.
+new BudgetStack(app, 'ProfileBudget', { env })
 
 app.synth()

@@ -1,0 +1,57 @@
+name: CI
+
+# Runs the checks on every pull request, and on master after a merge.
+# It never deploys and uses no secrets: Amplify builds the site from master,
+# and the AWS stacks are deployed by hand (see infra/README.md).
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: App (lint, tests, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npx vitest run
+      - run: npm run build
+
+  backend:
+    name: API and infra (tests, type-check)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            api/package-lock.json
+            infra/package-lock.json
+      - run: npm ci
+        working-directory: api
+      - run: npx vitest run
+        working-directory: api
+      - run: npx tsc --noEmit
+        working-directory: api
+      # The infra tests bundle the Lambda, so they need the API's packages above.
+      - run: npm ci
+        working-directory: infra
+      - run: npx vitest run
+        working-directory: infra
+      - run: npx tsc --noEmit
+        working-directory: infra
