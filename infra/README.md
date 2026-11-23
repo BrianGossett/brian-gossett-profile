@@ -120,6 +120,32 @@ The stack's outputs (`UserPoolId`, `UserPoolClientId`, `HostedUiDomain`, `Google
 |---|---|
 | `GET /me` | Returns the caller's profile (`USER#<userId>` / `PROFILE`), creating it from the token on first call |
 
+## Who can sign in
+
+Sign-in is by invitation. The first time a Google account signs in, a Cognito pre-sign-up check (`api/src/preSignUp.ts`) refuses it unless its email is on the list in the Parameter Store value `/profile/allowed-emails` (comma-separated, any letter case). People who already have an account are not checked again.
+
+- If the value is missing or empty, every new sign-up is refused.
+- A change takes effect within about two minutes, with no deploy.
+- The list is not in the repo. Set or change it with:
+
+```bash
+aws ssm put-parameter --name /profile/allowed-emails --type StringList --overwrite --value "first@example.com,second@example.com" --profile Gossett-Claude --region us-east-2
+```
+
+To remove someone who already has an account, also delete their user in the Cognito console (User pools > Users).
+
+## Budget alert (`ProfileBudget`)
+
+One monthly cost budget of $5 for the whole account. It emails at 80% of actual spend and when the forecast for the month passes 100%. It only warns; it does not stop anything. The address is given at deploy time, from `infra/`, and is not committed:
+
+```bash
+npx cdk deploy ProfileBudget --profile Gossett-Claude --parameters AlertEmail=you@example.com
+```
+
+## Checks on pull requests
+
+`.github/workflows/ci.yml` runs lint, tests and the build for the app, and tests and type-checks for `api/` and `infra/`, on every pull request and on `master`. It uses no secrets and never deploys.
+
 ## Score PDFs (`ProfileFiles`)
 
 The Exam Prep score PDFs (78 files, about 874 MB) are too big for git, so `public/scores/` is gitignored and the built site reads them from an S3 bucket instead. The site itself is still hosted on Amplify; there is no CloudFront in front of the bucket.

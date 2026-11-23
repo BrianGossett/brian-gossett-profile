@@ -1,4 +1,5 @@
-import { CfnOutput, CfnParameter, SecretValue, Stack, type StackProps } from 'aws-cdk-lib'
+import { fileURLToPath } from 'node:url'
+import { CfnOutput, CfnParameter, Duration, RemovalPolicy, SecretValue, Stack, type StackProps } from 'aws-cdk-lib'
 import {
   FeaturePlan,
   OAuthScope,
@@ -7,7 +8,12 @@ import {
   UserPoolClient,
   UserPoolClientIdentityProvider,
   UserPoolIdentityProviderGoogle,
+  UserPoolOperation,
 } from 'aws-cdk-lib/aws-cognito'
+import { PolicyStatement } from 'aws-cdk-lib/aws-iam'
+import { Architecture, Runtime } from 'aws-cdk-lib/aws-lambda'
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs'
+import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs'
 import type { Construct } from 'constructs'
 
 export interface AuthStackProps extends StackProps {
@@ -16,6 +22,11 @@ export interface AuthStackProps extends StackProps {
   /** Site origins that may start sign-in. Sign-in returns to <origin>/todo. */
   siteOrigins: string[]
 }
+
+const apiDir = fileURLToPath(new URL('../../api/', import.meta.url))
+
+/** Parameter Store name of the comma-separated list of emails allowed to sign up. */
+export const ALLOWED_EMAILS_PARAM = '/profile/allowed-emails'
 
 export class AuthStack extends Stack {
   readonly userPool: UserPool
@@ -30,6 +41,30 @@ export class AuthStack extends Stack {
       selfSignUpEnabled: false,
       featurePlan: FeaturePlan.LITE,
     })
+
+    // Sign-in is by invitation: a first-time sign-in is refused unless the Google
+    // account's email is on the list in Parameter Store. The list is read when
+    // someone signs up, so it can be changed without a deploy.
+    const preSignUp = new NodejsFunction(this, 'PreSignUp', {
+      entry: `${apiDir}src/preSignUp.ts`,
+      depsLockFilePath: `${apiDir}package-lock.json`,
+      projectRoot: apiDir,
+      runtime: Runtime.NODEJS_22_X,
+      architecture: Architecture.ARM_64,
+      memorySize: 128,
+      timeout: Duration.seconds(5),
+      environment: { ALLOWED_EMAILS_PARAM },
+      bundling: { externalModules: ['@aws-sdk/*'] },
+      logGroup: new LogGroup(this, 'PreSignUpLogs', {
+        retention: RetentionDays.ONE_MONTH,
+        removalPolicy: RemovalPolicy.DESTROY,
+      }),
+    })
+    preSignUp.addToRolePolicy(new PolicyStatement({
+      actions: ['ssm:GetParameter'],
+      resources: [this.formatArn({ service: 'ssm', resource: 'parameter', resourceName: ALLOWED_EMAILS_PARAM.slice(1) })],
+    }))
+    this.userPool.addTrigger(UserPoolOperation.PRE_SIGN_UP, preSignUp)
 
     // The Google OAuth client is passed in at deploy time (see scripts/deploy-auth.sh),
     // so neither value is ever written to the template or the repo.

@@ -79,4 +79,22 @@ describe('AuthStack', () => {
       template.hasOutput(name, {})
     }
   })
+
+  it('runs the invitation check before a new account is created', () => {
+    template.hasResourceProperties('AWS::Cognito::UserPool', {
+      LambdaConfig: { PreSignUp: Match.anyValue() },
+    })
+    template.hasResourceProperties('AWS::Lambda::Function', {
+      Environment: { Variables: { ALLOWED_EMAILS_PARAM: '/profile/allowed-emails' } },
+    })
+  })
+
+  it('lets the check read only the allowed-emails parameter', () => {
+    const policies = Object.values(template.findResources('AWS::IAM::Policy'))
+    const statements = policies.flatMap(p => p.Properties.PolicyDocument.Statement as { Action: unknown; Resource: unknown }[])
+    const ssm = statements.filter(st => JSON.stringify(st.Action).includes('ssm:'))
+    expect(ssm).toHaveLength(1)
+    expect(ssm[0].Action).toBe('ssm:GetParameter')
+    expect(JSON.stringify(ssm[0].Resource)).toContain(':parameter/profile/allowed-emails')
+  })
 })
